@@ -60,9 +60,9 @@ def puz_load(puzfile):
         sys.exit("Not a valid puzzle file.")
 
     puzzle = []
-    for i in range(15):
+    for i in range(rows):
         row = []
-        for j in range(15):
+        for j in range(cols):
             row.append(Cell(i, j, p.solution[i*rows + j]))
         puzzle.append(row)
 
@@ -99,12 +99,11 @@ def fill_grid(data):
 def small_nums(number):
     small_num = ""
     num_dict = {"1": "₁", "2": "₂", "3": "₃", "4": "₄", "5": "₅",
-            "6": "₆", "7": "₇", "8": "₈", "9": "₉", "0": "₀" }
+                "6": "₆", "7": "₇", "8": "₈", "9": "₉", "0": "₀" }
     for digit in str(number):
         small_num += num_dict[digit]
 
     return small_num
-
 
 def make_grid(grid_x, grid_y):
     top_row = get_top_row()
