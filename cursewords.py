@@ -34,11 +34,10 @@ class Cell:
         return self.solution in string.ascii_uppercase
 
 def main():
-    print(term.enter_fullscreen())
-
     filename = sys.argv[1]
     data = puz_load(filename)
-    
+
+    print(term.enter_fullscreen())
     print(term.clear())
 
     make_grid(grid_x, grid_y)
@@ -58,7 +57,7 @@ def puz_load(puzfile):
     try:
         p = puz.read(puzfile)
     except:
-        exit("Not a valid puzzle file.")
+        sys.exit("Not a valid puzzle file.")
 
     puzzle = []
     for i in range(15):
