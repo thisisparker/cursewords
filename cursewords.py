@@ -10,7 +10,6 @@ from blessed import Terminal
 
 from characters import *
 
-
 term = Terminal()
 
 class Cell:
@@ -88,7 +87,7 @@ class Grid:
 
             if cell.number:
                 small = small_nums(cell.number)
-                x_pos = x_coord if len(small) == 2 else x_coord + 1
+                x_pos = x_coord - 1
                 print(term.move(y_coord - 1, x_pos) + small)
 
         return None
@@ -143,7 +142,10 @@ def main():
     grid.number()
     grid.fill()
 
-    ctrl = 'T'
+    start_pos = [cell for cell in grid.cells if grid.cells[cell].is_letter()][0]
+
+    ctrl = grid.cells.get(start_pos).solution
+
     with term.cbreak(), term.hidden_cursor(), term.keypad():
         while ctrl != 'Q':
             print(term.move(grid_y + 1, grid_x + 2) + term.reverse
