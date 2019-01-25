@@ -43,18 +43,18 @@ class Grid:
         return None
 
     def draw(self):
-        top_row = get_top_row()
-        bottom_row = get_bottom_row()
-        middle_row = get_middle_row()
-        divider_row = get_divider_row()
+        top_row = self.get_top_row()
+        bottom_row = self.get_bottom_row()
+        middle_row = self.get_middle_row()
+        divider_row = self.get_divider_row()
 
         print(term.move(self.grid_y, self.grid_x) + top_row)
-        for y_val in enumerate(range(self.grid_y + 1, 
+        for index, y_val in enumerate(range(self.grid_y + 1,
                                      self.grid_y + self.row_count * 2), 1):
-            if y_val[0] % 2 == 0:
-                print(term.move(y_val[1], self.grid_x) + divider_row)
+            if index % 2 == 0:
+                print(term.move(y_val, self.grid_x) + divider_row)
             else:
-                print(term.move(y_val[1], self.grid_x) + middle_row)
+                print(term.move(y_val, self.grid_x) + middle_row)
         print(term.move(self.grid_y + self.row_count * 2, self.grid_x) 
               + bottom_row)
        
@@ -86,41 +86,42 @@ class Grid:
                 print(term.move(y_coord, x_coord - 1) + squareblock)
 
             if cell.number:
-                small = small_nums(cell.number)
+                small = self.small_nums(cell.number)
                 x_pos = x_coord - 1
                 print(term.move(y_coord - 1, x_pos) + small)
 
         return None
 
+    def small_nums(self, number):
+        small_num = ""
+        num_dict = {"1": "₁", "2": "₂", "3": "₃", "4": "₄", "5": "₅",
+                    "6": "₆", "7": "₇", "8": "₈", "9": "₉", "0": "₀" }
+        for digit in str(number):
+            small_num += num_dict[digit]
 
-def small_nums(number):
-    small_num = ""
-    num_dict = {"1": "₁", "2": "₂", "3": "₃", "4": "₄", "5": "₅",
-                "6": "₆", "7": "₇", "8": "₈", "9": "₉", "0": "₀" }
-    for digit in str(number):
-        small_num += num_dict[digit]
+        return small_num
 
-    return small_num
+    def make_row(self, leftmost, middle, divider, rightmost):
+        row = leftmost
+        for col in range(1, 60):
+            new_char = divider if col % 4 == 0 else middle
+            row += new_char
+        row += rightmost
+        return row
 
-def make_row(leftmost, middle, divider, rightmost):
-    row = leftmost
-    for col in range(1, 60):
-        new_char = divider if col % 4 == 0 else middle
-        row += new_char
-    row += rightmost
-    return row
+    def get_top_row(self):
+        return self.make_row(ulcorner, hline, ttee, urcorner)
 
-def get_top_row():
-    return make_row(ulcorner, hline, ttee, urcorner)
+    def get_bottom_row(self):
+        return self.make_row(llcorner, hline, btee, lrcorner)
 
-def get_bottom_row():
-    return make_row(llcorner, hline, btee, lrcorner)
+    def get_middle_row(self):
+        return self.make_row(vline, " ", vline, vline)
 
-def get_middle_row():
-    return make_row(vline, " ", vline, vline)
+    def get_divider_row(self):
+        return self.make_row(ltee, hline, bigplus, rtee)
 
-def get_divider_row():
-    return make_row(ltee, hline, bigplus, rtee)
+
 
 
 def main():
