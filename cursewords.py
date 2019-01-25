@@ -45,11 +45,14 @@ def main():
     number_grid(data)
     fill_grid(data)
 
-    ctrl = ''
-
-    with term.cbreak():
-        while ctrl != 'q':
-            ctrl = term.getch()
+    ctrl = 'T'
+    with term.cbreak(), term.hidden_cursor(), term.keypad():
+        while ctrl != 'Q':
+            print(term.move(grid_y + 1, grid_x + 2) + term.reverse
+                    + ctrl.upper())
+            # row, col = term.get_location()
+            # print(term.normal + "current location is " + str(row) + ", " + str(col))
+            ctrl = term.inkey()
 
     print(term.exit_fullscreen())
 
@@ -62,7 +65,7 @@ def puz_load(puzfile):
     puzzle = []
     for i in range(rows):
         row = []
-        for j in range(cols):
+        for j in range(columns):
             row.append(Cell(i, j, p.solution[i*rows + j]))
         puzzle.append(row)
 
@@ -140,21 +143,6 @@ def get_middle_row():
 
 def get_divider_row():
     return make_row(ltee, hline, bigplus, rtee)
-
-def make_junk_data():
-    data = []
-    for i in range(15):
-        row = []
-        for j in range(15):
-            if random.randint(0, 2) != 2:
-                new_char = random.choice(string.ascii_uppercase)
-            else:
-                new_char = "."
-            box = Cell(i, j, new_char)
-            row.append(box)
-        data.append(row)
-
-    return data
 
 if __name__ == '__main__':
     main()
