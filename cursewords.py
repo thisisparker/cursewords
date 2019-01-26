@@ -17,7 +17,10 @@ class Cell:
         self.solution = solution
 
         self.number = None
-        self.entry = None
+        if entry:
+            self.entry = entry
+        else:
+            self.entry = " "
 
     def is_block(self):
         return self.solution == "."
@@ -76,12 +79,11 @@ class Grid:
         return None
 
     def fill(self):
-        for x, y in self.cells:
-            y_coord = self.grid_y + (y * 2) + 1
-            x_coord = self.grid_x + (x * 4) + 2
-            cell = self.cells[(x,y)]
+        for position in self.cells:
+            y_coord, x_coord = self.to_term(position)
+            cell = self.cells[position]
             if cell.is_letter():
-                print(term.move(y_coord, x_coord) + cell.solution)
+                print(term.move(y_coord, x_coord) + cell.entry)
             elif cell.is_block():
                 print(term.move(y_coord, x_coord - 1) + squareblock)
 
@@ -91,6 +93,12 @@ class Grid:
                 print(term.move(y_coord - 1, x_pos) + small)
 
         return None
+
+    def to_term(self, position):
+        point_x, point_y = position
+        term_x = self.grid_x + (4 * point_x) + 2
+        term_y = self.grid_y + (2 * point_y) + 1
+        return (term_y, term_x)
 
     def small_nums(self, number):
         small_num = ""
@@ -122,6 +130,28 @@ class Grid:
         return self.make_row(ltee, hline, bigplus, rtee)
 
 
+class Cursor:
+    def __init__(self, position, direction):
+        self.position = position
+        self.direction = direction
+
+    def current_word(self, grid):
+        pos = self.position
+        word = []
+        if self.direction == "across":
+            while (not grid.cells[pos].is_block() and not 
+                    self.is_off_grid(pos, grid)):
+                word.append(pos)
+                pos = (pos[0] + 1, pos[1])
+        return word
+
+    def is_off_grid(self, pos, grid):
+        return (pos[0] < 0 or
+                pos[0] > grid.row_count or
+                pos[1] > 0 or
+                pos[1] > grid.column_count)
+        
+
 
 
 def main():
@@ -143,14 +173,25 @@ def main():
     grid.number()
     grid.fill()
 
-    start_pos = [cell for cell in grid.cells if grid.cells[cell].is_letter()][0]
+    start_pos = [pos for pos in grid.cells if grid.cells[pos].is_letter()][0]
 
-    ctrl = grid.cells.get(start_pos).solution
+    cursor = Cursor(start_pos, "across")
+
+    value = grid.cells.get(start_pos).entry
+    ctrl = 'A'
+
+    # TODO: clean up everything below
 
     with term.cbreak(), term.hidden_cursor(), term.keypad():
         while ctrl != 'Q':
-            print(term.move(grid_y + 1, grid_x + 2) + term.reverse
-                    + ctrl.upper())
+            value = grid.cells.get(cursor.position).entry
+            for position in cursor.current_word(grid):
+                term_pos = grid.to_term(position)
+                print(term.move(term_pos[0], term_pos[1]) +
+                        term.underline(" "))
+            term_pos = grid.to_term(start_pos)
+            print(term.move(term_pos[0], term_pos[1]) 
+                    + term.blink(term.reverse(value)))
             ctrl = term.inkey()
 
     print(term.exit_fullscreen())
