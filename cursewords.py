@@ -253,7 +253,7 @@ def main():
             with term.location(0, term.height - 6):
                 print(repr(keypress) + " " +  str(cursor.position) + 
                         str(cursor.current_word())
-                        + " " + str(cursor.direction).ljust(60))
+                        + " " + str(cursor.direction).ljust(2 * term.width))
 
             for position in cursor.current_word():
                 print(term.move(*grid.to_term(position)) +
