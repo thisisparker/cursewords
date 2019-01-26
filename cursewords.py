@@ -1,6 +1,5 @@
 #! /usr/bin/env python3
 
-import collections
 import string
 import sys
 
@@ -38,7 +37,7 @@ class Grid:
         self.column_count = 15
 
     def load(self):
-        self.cells = collections.OrderedDict()
+        self.cells = dict()
         for i in range(self.row_count):
             for j in range(self.column_count):
                 self.cells[(j,i)] = Cell(
@@ -207,16 +206,28 @@ def main():
 
             keypress = term.inkey()
 
-            if keypress.name == 'KEY_DOWN':
+            if (cursor.direction == "across" and 
+                    keypress.name in ['KEY_DOWN', 'KEY_UP']):
+                
                 for position in cursor.current_word(grid):
                     print(term.move(*grid.to_term(position)) +
                             grid.cells.get(position).solution)
+
                 cursor.switch_direction("down")
-            elif keypress.name == 'KEY_RIGHT':
+
+            elif (cursor.direction == "down" and 
+                    keypress.name in ['KEY_LEFT', 'KEY_RIGHT']):
+
                 for position in cursor.current_word(grid):
                     print(term.move(*grid.to_term(position)) +
                             grid.cells.get(position).solution)
+
                 cursor.switch_direction("across")
+
+            elif (cursor.direction == "across" and
+                    keypress.name == 'KEY_RIGHT'):
+
+                cursor.position = (cursor.position[0] + 1, cursor.position[1])
 
     print(term.exit_fullscreen())
 
