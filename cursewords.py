@@ -93,14 +93,11 @@ class Grid:
         number = 1
         for x, y in self.cells:
             cell = self.cells[(x,y)]
-            if not cell.is_block():
-                if (x == 0 or y == 0):
-                    cell.number = number
-                    number += 1
-                elif (self.cells[(x - 1, y)].is_block() or
-                        self.cells[(x, y - 1)].is_block()):
-                    self.cells[(x,y)].number = number
-                    number += 1
+            if (not cell.is_block() and ((x == 0 or y == 0) or
+                                        (self.cells[(x-1, y)].is_block() or
+                                        self.cells[(x, y-1)].is_block()))):
+                cell.number = number
+                number += 1
 
         return None
 
