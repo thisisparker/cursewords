@@ -251,9 +251,11 @@ def main():
     grid.number()
     grid.fill()
 
-    start_pos = [pos for pos in grid.cells if grid.cells[pos].is_letter()][0]
+    start_pos = grid.across_words[0][0]
     cursor = Cursor(start_pos, "across", grid)
 
+    old_word = []
+    old_position = start_pos
     keypress = ''
 
     with term.cbreak(), term.hidden_cursor():
@@ -264,9 +266,16 @@ def main():
                         str(cursor.current_word())
                         + " " + str(cursor.direction).ljust(2 * term.width))
 
-            for position in cursor.current_word():
-                print(term.move(*grid.to_term(position)) +
-                        term.underline(grid.cells.get(position).entry))
+            if cursor.current_word() is not old_word:
+                for position in old_word:
+                    print(term.move(*grid.to_term(position)) +
+                            grid.cells.get(position).entry)
+                for position in cursor.current_word():
+                    print(term.move(*grid.to_term(position)) +
+                            term.underline(grid.cells.get(position).entry))
+            else:
+                print(term.move(*grid.to_term(old_position)) +
+                        term.underline(grid.cells.get(old_position).entry))
 
             value = grid.cells.get(cursor.position).entry
             print(term.move(*grid.to_term(cursor.position))
@@ -274,19 +283,16 @@ def main():
 
             keypress = term.inkey()
 
+            old_position = cursor.position
+            old_word = cursor.current_word()
+
             if keypress in string.ascii_letters:
                 grid.cells.get(cursor.position).entry = keypress.upper()
-                for position in cursor.current_word():
-                    print(term.move(*grid.to_term(position)) +
-                            grid.cells.get(position).entry)
 
                 cursor.advance()
 
             elif keypress.name == 'KEY_DELETE':
                 grid.cells.get(cursor.position).entry = ' '
-                for position in cursor.current_word():
-                    print(term.move(*grid.to_term(position)) +
-                            grid.cells.get(position).entry)
 
                 cursor.retreat()
 
@@ -296,27 +302,15 @@ def main():
                     (cursor.direction == "down" and
                         keypress.name in ['KEY_LEFT', 'KEY_RIGHT'])):
 
-                for position in cursor.current_word():
-                    print(term.move(*grid.to_term(position)) +
-                            grid.cells.get(position).entry)
-
                 cursor.switch_direction()
 
             elif ((cursor.direction == "across" and keypress.name == 'KEY_RIGHT') or
                     cursor.direction == "down" and keypress.name == 'KEY_DOWN'):
 
-                for position in cursor.current_word():
-                    print(term.move(*grid.to_term(position)) +
-                            grid.cells.get(position).entry)
-
                 cursor.advance()
 
             elif ((cursor.direction == "across" and keypress.name == 'KEY_LEFT') or
                     cursor.direction == "down" and keypress.name == 'KEY_UP'):
-
-                for position in cursor.current_word():
-                    print(term.move(*grid.to_term(position)) +
-                            grid.cells.get(position).entry)
 
                 cursor.retreat()
 
