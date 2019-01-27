@@ -256,15 +256,17 @@ def main():
 
     old_word = []
     old_position = start_pos
-    keypress = ''
+    keypress = '' 
 
     with term.cbreak(), term.hidden_cursor():
-        while keypress != 'Q':
+        while repr(keypress) != 'KEY_ESCAPE':
             # Debugging output here:
             with term.location(0, term.height - 6):
                 print(repr(keypress) + " " +  str(cursor.position) + " " +
                         str(cursor.current_word())
                         + " " + str(cursor.direction).ljust(2 * term.width))
+            with term.location(0, term.height - 4):
+                print("press escape to exit")
 
             if cursor.current_word() is not old_word:
                 for position in old_word:
@@ -298,19 +300,19 @@ def main():
 
             elif (keypress.name == 'KEY_TAB' or
                     (cursor.direction == "across" and
-                    keypress.name in ['KEY_DOWN', 'KEY_UP']) or
+                        keypress.name in ['KEY_DOWN', 'KEY_UP']) or
                     (cursor.direction == "down" and
                         keypress.name in ['KEY_LEFT', 'KEY_RIGHT'])):
 
                 cursor.switch_direction()
 
             elif ((cursor.direction == "across" and keypress.name == 'KEY_RIGHT') or
-                    cursor.direction == "down" and keypress.name == 'KEY_DOWN'):
+                    (cursor.direction == "down" and keypress.name == 'KEY_DOWN')):
 
                 cursor.advance()
 
             elif ((cursor.direction == "across" and keypress.name == 'KEY_LEFT') or
-                    cursor.direction == "down" and keypress.name == 'KEY_UP'):
+                    (cursor.direction == "down" and keypress.name == 'KEY_UP')):
 
                 cursor.retreat()
 
