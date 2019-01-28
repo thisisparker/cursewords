@@ -11,8 +11,6 @@ from blessed import Terminal
 
 from characters import *
 
-term = Terminal()
-
 class Cell:
     def __init__(self, solution, entry=None):
         self.solution = solution
@@ -30,16 +28,18 @@ class Cell:
         return self.solution in string.ascii_uppercase
 
 class Grid:
-    def __init__(self, grid_x, grid_y, puzfile):
+    def __init__(self, grid_x, grid_y, term):
         self.grid_x = grid_x
         self.grid_y = grid_y
+        self.term = term
+
+    def load(self, puzfile):
         self.puzfile = puzfile
+        self.cells = collections.OrderedDict()
 
         self.row_count = 15
         self.column_count = 15
 
-    def load(self):
-        self.cells = collections.OrderedDict()
         for i in range(self.row_count):
             for j in range(self.column_count):
                 self.cells[(j,i)] = Cell(
@@ -77,14 +77,14 @@ class Grid:
         middle_row = self.get_middle_row()
         divider_row = self.get_divider_row()
 
-        print(term.move(self.grid_y, self.grid_x) + top_row)
+        print(self.term.move(self.grid_y, self.grid_x) + top_row)
         for index, y_val in enumerate(range(self.grid_y + 1,
                                      self.grid_y + self.row_count * 2), 1):
             if index % 2 == 0:
-                print(term.move(y_val, self.grid_x) + divider_row)
+                print(self.term.move(y_val, self.grid_x) + divider_row)
             else:
-                print(term.move(y_val, self.grid_x) + middle_row)
-        print(term.move(self.grid_y + self.row_count * 2, self.grid_x) 
+                print(self.term.move(y_val, self.grid_x) + middle_row)
+        print(self.term.move(self.grid_y + self.row_count * 2, self.grid_x)
               + bottom_row)
        
         return None
@@ -106,14 +106,14 @@ class Grid:
             y_coord, x_coord = self.to_term(position)
             cell = self.cells[position]
             if cell.is_letter():
-                print(term.move(y_coord, x_coord) + cell.entry)
+                print(self.term.move(y_coord, x_coord) + cell.entry)
             elif cell.is_block():
-                print(term.move(y_coord, x_coord - 1) + squareblock)
+                print(self.term.move(y_coord, x_coord - 1) + squareblock)
 
             if cell.number:
                 small = self.small_nums(cell.number)
                 x_pos = x_coord - 1
-                print(term.move(y_coord - 1, x_pos) + small)
+                print(self.term.move(y_coord - 1, x_pos) + small)
 
         return None
 
@@ -239,14 +239,16 @@ def main():
     except:
         sys.exit("Unable to parse {} as a .puz file.".format(filename))
 
+    term = Terminal()
+
     print(term.enter_fullscreen())
     print(term.clear())
 
     grid_x = 4
     grid_y = 2
 
-    grid = Grid(grid_x, grid_y, puzfile)
-    grid.load()
+    grid = Grid(grid_x, grid_y, term)
+    grid.load(puzfile)
     grid.draw()
     grid.number()
     grid.fill()
@@ -256,7 +258,7 @@ def main():
 
     old_word = []
     old_position = start_pos
-    keypress = '' 
+    keypress = ''
 
     with term.cbreak(), term.hidden_cursor():
         while repr(keypress) != 'KEY_ESCAPE':
@@ -289,11 +291,13 @@ def main():
             old_word = cursor.current_word()
 
             if keypress in string.ascii_letters:
+
                 grid.cells.get(cursor.position).entry = keypress.upper()
 
                 cursor.advance()
 
             elif keypress.name == 'KEY_DELETE':
+
                 grid.cells.get(cursor.position).entry = ' '
 
                 cursor.retreat()
