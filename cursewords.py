@@ -69,6 +69,10 @@ class Grid:
             if current_word:
                 self.down_words.append(current_word)
 
+        num = self.puzfile.clue_numbering()
+        self.across_clues = {word['num']:word['clue'] for word in num.across}
+        self.down_clues = {word['num']:word['clue'] for word in num.down}
+
         return None
 
     def draw(self):
@@ -263,12 +267,24 @@ def main():
     with term.cbreak(), term.hidden_cursor():
         while repr(keypress) != 'KEY_ESCAPE':
             # Debugging output here:
-            with term.location(0, term.height - 6):
-                print(repr(keypress) + " " +  str(cursor.position) + " " +
-                        str(cursor.current_word())
-                        + " " + str(cursor.direction).ljust(2 * term.width))
             with term.location(0, term.height - 4):
+                print(str(repr(keypress) + " " +  str(cursor.position) + " " +
+                        str(cursor.current_word())
+                        + " " + str(cursor.direction)).ljust(2 * term.width))
+            with term.location(0, term.height - 2):
                 print("press escape to exit")
+
+            if cursor.direction == "across":
+                num = grid.cells.get(cursor.current_word()[0]).number
+                clue = grid.across_clues[num]
+            elif cursor.direction == "down":
+                num = grid.cells.get(cursor.current_word()[0]).number
+                clue = grid.down_clues[num]
+
+            compiled = (str(num) + " " + cursor.direction.upper() \
+                            + ": " + clue)
+            with term.location(4, term.height - 7):
+                print(compiled.ljust(term.width))
 
             if cursor.current_word() is not old_word:
                 for position in old_word:
