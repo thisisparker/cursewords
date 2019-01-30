@@ -218,7 +218,7 @@ class Cursor:
             next_words = self.grid.across_words
 
         word_index = word_group.index(self.current_word())
- 
+
         if word_index == len(word_group) - 1:
             self.switch_direction()
             self.position = next_words[0][0]
@@ -350,7 +350,7 @@ def main():
             old_word = cursor.current_word()
 
             if keypress in string.ascii_letters:
-                if grid.cells.get(cursor.position).entry != " " and
+                if grid.cells.get(cursor.position).entry != " ":
                     overwrite_mode = True
                     # TODO this still doesn't feel quite right
                     # If you type in a few letters towards the end,
