@@ -51,7 +51,7 @@ class Grid:
             for j in range(self.column_count):
                 if self.cells[(j,i)].is_letter():
                     current_word.append((j,i))
-                else:
+                elif current_word:
                     self.across_words.append(current_word)
                     current_word = []
             if current_word:
@@ -63,11 +63,14 @@ class Grid:
             for i in range(self.row_count):
                 if self.cells[(j,i)].is_letter():
                     current_word.append((j,i))
-                else:
+                elif current_word:
                     self.down_words.append(current_word)
                     current_word = []
             if current_word:
                 self.down_words.append(current_word)
+
+        self.down_words_grouped = sorted(self.down_words,
+                key=lambda word: (word[0][1], word[0][0]))
 
         num = self.puzfile.clue_numbering()
         self.across_clues = {word['num']:word['clue'] for word in num.across}
@@ -81,15 +84,18 @@ class Grid:
         middle_row = self.get_middle_row()
         divider_row = self.get_divider_row()
 
-        print(self.term.move(self.grid_y, self.grid_x) + top_row)
+        print(self.term.move(self.grid_y, self.grid_x) +
+                self.term.dim(top_row))
         for index, y_val in enumerate(range(self.grid_y + 1,
                                      self.grid_y + self.row_count * 2), 1):
             if index % 2 == 0:
-                print(self.term.move(y_val, self.grid_x) + divider_row)
+                print(self.term.move(y_val, self.grid_x) +
+                        self.term.dim(divider_row))
             else:
-                print(self.term.move(y_val, self.grid_x) + middle_row)
+                print(self.term.move(y_val, self.grid_x) +
+                        self.term.dim(middle_row))
         print(self.term.move(self.grid_y + self.row_count * 2, self.grid_x)
-              + bottom_row)
+              + self.term.dim(bottom_row))
        
         return None
 
@@ -112,7 +118,8 @@ class Grid:
             if cell.is_letter():
                 print(self.term.move(y_coord, x_coord) + cell.entry)
             elif cell.is_block():
-                print(self.term.move(y_coord, x_coord - 1) + squareblock)
+                print(self.term.move(y_coord, x_coord - 1) +
+                        self.term.dim(squareblock))
 
             if cell.number:
                 small = self.small_nums(cell.number)
@@ -182,6 +189,41 @@ class Cursor:
             self.position = next(self.move_left())
         elif self.direction == "down":
             self.position = next(self.move_up())
+
+    def advance_within_word(self, overwrite_mode=False):
+        within_pos = next(self.move_within_word(overwrite_mode), None)
+        if within_pos:
+            self.position = within_pos
+        else:
+            self.advance_to_next_word()
+
+    def move_within_word(self, overwrite_mode=False):
+        word_spaces = self.current_word()
+        current_space = word_spaces.index(self.position)
+        ordered_spaces = (word_spaces[current_space + 1:] +
+                word_spaces[:current_space])
+        if not overwrite_mode:
+            ordered_spaces = [pos for pos in ordered_spaces
+                    if self.grid.cells.get(pos).entry == " "]
+        forever_spaces = itertools.cycle(ordered_spaces)
+
+        yield from forever_spaces
+
+    def advance_to_next_word(self):
+        if self.direction == "across":
+            word_group = self.grid.across_words
+            next_words = self.grid.down_words_grouped
+        elif self.direction == "down":
+            word_group = self.grid.down_words_grouped
+            next_words = self.grid.across_words
+
+        word_index = word_group.index(self.current_word())
+ 
+        if word_index == len(word_group) - 1:
+            self.switch_direction()
+            self.position = next_words[0][0]
+        else:
+            self.position = word_group[word_index + 1][0]
 
     def move_right(self):
         spaces = list(itertools.chain(*self.grid.across_words))
@@ -287,6 +329,7 @@ def main():
                 print(compiled.ljust(term.width))
 
             if cursor.current_word() is not old_word:
+                overwrite_mode = False
                 for position in old_word:
                     print(term.move(*grid.to_term(position)) +
                             grid.cells.get(position).entry)
@@ -307,15 +350,18 @@ def main():
             old_word = cursor.current_word()
 
             if keypress in string.ascii_letters:
-
+                if grid.cells.get(cursor.position).entry != " " and
+                    overwrite_mode = True
+                    # TODO this still doesn't feel quite right
+                    # If you type in a few letters towards the end,
+                    # you probably expect to proceed to the next word
+                    # but I need to figure out the rule
                 grid.cells.get(cursor.position).entry = keypress.upper()
-
-                cursor.advance()
+                cursor.advance_within_word(overwrite_mode)
 
             elif keypress.name == 'KEY_DELETE':
-
                 grid.cells.get(cursor.position).entry = ' '
-
+                overwrite_mode = True
                 cursor.retreat()
 
             elif (keypress.name == 'KEY_TAB' or
@@ -326,13 +372,17 @@ def main():
 
                 cursor.switch_direction()
 
-            elif ((cursor.direction == "across" and keypress.name == 'KEY_RIGHT') or
-                    (cursor.direction == "down" and keypress.name == 'KEY_DOWN')):
+            elif ((cursor.direction == "across" and
+                        keypress.name == 'KEY_RIGHT') or
+                    (cursor.direction == "down" and
+                        keypress.name == 'KEY_DOWN')):
 
                 cursor.advance()
 
-            elif ((cursor.direction == "across" and keypress.name == 'KEY_LEFT') or
-                    (cursor.direction == "down" and keypress.name == 'KEY_UP')):
+            elif ((cursor.direction == "across" and
+                        keypress.name == 'KEY_LEFT') or
+                    (cursor.direction == "down" and
+                        keypress.name == 'KEY_UP')):
 
                 cursor.retreat()
 
