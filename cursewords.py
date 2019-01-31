@@ -73,8 +73,8 @@ class Grid:
                 key=lambda word: (word[0][1], word[0][0]))
 
         num = self.puzfile.clue_numbering()
-        self.across_clues = {word['num']:word['clue'] for word in num.across}
-        self.down_clues = {word['num']:word['clue'] for word in num.down}
+        self.across_clues = [word['clue'] for word in num.across]
+        self.down_clues = [word['clue'] for word in num.down]
 
         return None
 
@@ -209,6 +209,14 @@ class Cursor:
 
         yield from forever_spaces
 
+    def retreat_within_word(self):
+        pos_index = self.current_word().index(self.position)
+
+        if pos_index > 0:
+            self.position = self.current_word()[pos_index - 1]
+        else:
+            self.retreat_to_previous_word(end_placement=True)
+
     def advance_to_next_word(self):
         if self.direction == "across":
             word_group = self.grid.across_words
@@ -224,6 +232,25 @@ class Cursor:
             self.position = next_words[0][0]
         else:
             self.position = word_group[word_index + 1][0]
+
+    def retreat_to_previous_word(self, end_placement=False):
+        if self.direction == "across":
+            word_group = self.grid.across_words
+            next_words = self.grid.down_words_grouped
+        elif self.direction == "down":
+            word_group = self.grid.down_words_grouped
+            next_words = self.grid.across_words
+
+        word_index = word_group.index(self.current_word())
+ 
+        pos = -1 if end_placement else 0
+
+        if word_index == 0:
+            self.switch_direction()
+            self.position = next_words[-1][pos]
+        else:
+            new_word = word_group[word_index - 1]
+            self.position = word_group[word_index -1][pos]
 
     def move_right(self):
         spaces = list(itertools.chain(*self.grid.across_words))
@@ -317,13 +344,14 @@ def main():
                 print("press escape to exit")
 
             if cursor.direction == "across":
-                num = grid.cells.get(cursor.current_word()[0]).number
-                clue = grid.across_clues[num]
+                num_index = grid.across_words.index(cursor.current_word())
+                clue = grid.across_clues[num_index]
             elif cursor.direction == "down":
-                num = grid.cells.get(cursor.current_word()[0]).number
-                clue = grid.down_clues[num]
+                num_index = grid.down_words_grouped.index(cursor.current_word())
+                clue = grid.down_clues[num_index]
 
-            compiled = (str(num) + " " + cursor.direction.upper() \
+            num = str(num_index + 1)
+            compiled = (num + " " + cursor.direction.upper() \
                             + ": " + clue)
             with term.location(4, term.height - 6):
                 print(compiled.ljust(term.width))
@@ -362,9 +390,15 @@ def main():
             elif keypress.name == 'KEY_DELETE':
                 grid.cells.get(cursor.position).entry = ' '
                 overwrite_mode = True
-                cursor.retreat()
+                cursor.retreat_within_word()
 
-            elif (keypress.name == 'KEY_TAB' or
+            elif keypress.name in ['KEY_TAB', 'KEY_PGDOWN']:
+                cursor.advance_to_next_word()
+
+            elif keypress.name in ['KEY_BTAB', 'KEY_PGUP']:
+                cursor.retreat_to_previous_word()
+
+            elif (keypress.name == 'KEY_ENTER' or keypress == ' ' or
                     (cursor.direction == "across" and
                         keypress.name in ['KEY_DOWN', 'KEY_UP']) or
                     (cursor.direction == "down" and
