@@ -37,13 +37,13 @@ class Grid:
         self.puzfile = puzfile
         self.cells = collections.OrderedDict()
 
-        self.row_count = 15
-        self.column_count = 15
+        self.row_count = puzfile.height
+        self.column_count = puzfile.width
 
         for i in range(self.row_count):
             for j in range(self.column_count):
                 self.cells[(j,i)] = Cell(
-                        self.puzfile.solution[i * self.row_count + j])
+                        self.puzfile.solution[i * self.column_count + j])
 
         self.across_words = []
         for i in range(self.row_count):
@@ -145,7 +145,7 @@ class Grid:
 
     def make_row(self, leftmost, middle, divider, rightmost):
         row = leftmost
-        for col in range(1, 60):
+        for col in range(1, self.column_count * 4):
             new_char = divider if col % 4 == 0 else middle
             row += new_char
         row += rightmost
@@ -325,7 +325,7 @@ def main():
 
             compiled = (str(num) + " " + cursor.direction.upper() \
                             + ": " + clue)
-            with term.location(4, term.height - 7):
+            with term.location(4, term.height - 6):
                 print(compiled.ljust(term.width))
 
             if cursor.current_word() is not old_word:
