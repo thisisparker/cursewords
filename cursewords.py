@@ -335,9 +335,13 @@ def main():
 
     with term.cbreak(), term.hidden_cursor():
         while repr(keypress) != 'KEY_ESCAPE':
+            is_correct = (grid.cells.get(cursor.position).entry ==
+                            grid.cells.get(cursor.position).solution)
+
             # Debugging output here:
             with term.location(0, term.height - 4):
                 print(str(repr(keypress) + " " +  str(cursor.position) + " " +
+                        "correct: " + str(is_correct) + " " +
                         str(cursor.current_word())
                         + " " + str(cursor.direction)).ljust(2 * term.width))
             with term.location(0, term.height - 2):
@@ -371,6 +375,7 @@ def main():
             value = grid.cells.get(cursor.position).entry
             print(term.move(*grid.to_term(cursor.position))
                     + term.reverse(value))
+
 
             keypress = term.inkey()
 
@@ -420,6 +425,13 @@ def main():
 
                 cursor.retreat()
 
+            if all(grid.cells.get(pos).entry == grid.cells.get(pos).solution
+                    for pos in itertools.chain(*grid.across_words)):
+                with term.location(4, term.height - 6):
+                    print(term.reverse("You've completed the puzzle!").
+                            ljust(term.width))
+                    input()
+                    break
     print(term.exit_fullscreen())
 
 if __name__ == '__main__':
