@@ -321,6 +321,11 @@ def main():
 
     grid = Grid(grid_x, grid_y, term)
     grid.load(puzfile)
+
+    if ((term.width < grid_x + 4 * grid.column_count + 2) or
+            term.height < grid_y + 2 * grid.row_count + 6):
+        sys.exit("This terminal window is too small too properly display the puzzle.")
+
     grid.draw()
     grid.number()
     grid.fill()
