@@ -36,7 +36,6 @@ class Grid:
     def load(self, puzfile):
         self.puzfile = puzfile
         self.cells = collections.OrderedDict()
-
         self.row_count = puzfile.height
         self.column_count = puzfile.width
 
@@ -333,17 +332,17 @@ def main():
     old_position = start_pos
     keypress = ''
 
+    info_location = {'x':grid_x, 'y':grid_y + 2 * grid.row_count + 2}
+
     with term.cbreak(), term.hidden_cursor():
         while repr(keypress) != 'KEY_ESCAPE':
-            is_correct = (grid.cells.get(cursor.position).entry ==
-                            grid.cells.get(cursor.position).solution)
 
             # Debugging output here:
-            with term.location(0, term.height - 4):
-                print(str(repr(keypress) + " " +  str(cursor.position) + " " +
-                        "correct: " + str(is_correct) + " " +
-                        str(cursor.current_word())
-                        + " " + str(cursor.direction)).ljust(2 * term.width))
+#            with term.location(0, term.height - 4):
+#                print(str(repr(keypress) + " " +  str(cursor.position) + " " +
+#                        "correct: " + str(is_correct) + " " +
+#                        str(cursor.current_word())
+#                        + " " + str(cursor.direction)).ljust(2 * term.width))
             with term.location(0, term.height - 2):
                 print("press escape to exit")
 
@@ -357,8 +356,8 @@ def main():
             num = str(num_index + 1)
             compiled = (num + " " + cursor.direction.upper() \
                             + ": " + clue)
-            with term.location(4, term.height - 6):
-                print(compiled.ljust(term.width))
+            with term.location(**info_location):
+                print(compiled + term.clear_eol)
 
             if cursor.current_word() is not old_word:
                 overwrite_mode = False
@@ -376,6 +375,13 @@ def main():
             print(term.move(*grid.to_term(cursor.position))
                     + term.reverse(value))
 
+            if all(grid.cells.get(pos).entry == grid.cells.get(pos).solution
+                    for pos in itertools.chain(*grid.across_words)):
+                with term.location(**info_location):
+                    print(term.reverse("You've completed the puzzle!"),
+                            term.clear_eol)
+                    input()
+                    break
 
             keypress = term.inkey()
 
@@ -425,13 +431,6 @@ def main():
 
                 cursor.retreat()
 
-            if all(grid.cells.get(pos).entry == grid.cells.get(pos).solution
-                    for pos in itertools.chain(*grid.across_words)):
-                with term.location(4, term.height - 6):
-                    print(term.reverse("You've completed the puzzle!").
-                            ljust(term.width))
-                    input()
-                    break
     print(term.exit_fullscreen())
 
 if __name__ == '__main__':
