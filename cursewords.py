@@ -4,6 +4,7 @@ import collections
 import itertools
 import string
 import sys
+import textwrap
 
 import puz
 
@@ -313,9 +314,6 @@ def main():
 
     term = Terminal()
 
-    print(term.enter_fullscreen())
-    print(term.clear())
-
     grid_x = 4
     grid_y = 2
 
@@ -324,7 +322,15 @@ def main():
 
     if ((term.width < grid_x + 4 * grid.column_count + 2) or
             term.height < grid_y + 2 * grid.row_count + 6):
-        sys.exit("This terminal window is too small too properly display the puzzle.")
+        exit_text = textwrap.dedent("""\
+        This puzzle is {} columns wide and {} rows tall. 
+        The current terminal window is too small to 
+        properly display it.""".format(
+            grid.column_count, grid.row_count))
+        sys.exit(''.join(exit_text.splitlines()))
+
+    print(term.enter_fullscreen())
+    print(term.clear())
 
     grid.draw()
     grid.number()
@@ -336,6 +342,7 @@ def main():
     old_word = []
     old_position = start_pos
     keypress = ''
+    puzzle_complete = False
 
     info_location = {'x':grid_x, 'y':grid_y + 2 * grid.row_count + 2}
 
@@ -380,20 +387,20 @@ def main():
             print(term.move(*grid.to_term(cursor.position))
                     + term.reverse(value))
 
-            if all(grid.cells.get(pos).entry == grid.cells.get(pos).solution
+            if not puzzle_complete and all(
+                    grid.cells.get(pos).entry == grid.cells.get(pos).solution
                     for pos in itertools.chain(*grid.across_words)):
-                with term.location(**info_location):
+                puzzle_complete = True
+                with term.location(x=info_location['x'], y=info_location['y']+1):
                     print(term.reverse("You've completed the puzzle!"),
                             term.clear_eol)
-                    input()
-                    break
 
             keypress = term.inkey()
 
             old_position = cursor.position
             old_word = cursor.current_word()
 
-            if keypress in string.ascii_letters:
+            if not puzzle_complete and keypress in string.ascii_letters:
                 if grid.cells.get(cursor.position).entry != " ":
                     overwrite_mode = True
                     # TODO this still doesn't feel quite right
