@@ -190,12 +190,42 @@ class Cursor:
         elif self.direction == "down":
             self.position = next(self.move_up())
 
+    def advance_to_next_blank(self):
+        if self.direction == "across":
+            word_group = self.grid.across_words
+        elif self.direction == "down":
+            word_group = self.grid.down_words_grouped
+
+        spaces = list(itertools.chain(*word_group))
+        current_index = spaces.index(self.position)
+        ordered_spaces = spaces[current_index + 1:] + spaces[:current_index]
+
+        blank_spaces = [space for space in ordered_spaces if
+                self.grid.cells.get(space).entry == ' ']
+
+        self.position = next(iter(blank_spaces), self.position)
+
+    def retreat_to_previous_blank(self):
+        if self.direction == "across":
+            word_group = self.grid.across_words
+        elif self.direction == "down":
+            word_group = self.grid.down_words_grouped
+
+        spaces = list(itertools.chain(*word_group))
+        current_index = spaces.index(self.position)
+        ordered_spaces = spaces[current_index - 1::-1] + spaces[:current_index:-1]
+
+        blank_spaces = [space for space in ordered_spaces if
+                self.grid.cells.get(space).entry == ' ']
+
+        self.position = next(iter(blank_spaces), self.position)
+
     def advance_within_word(self, overwrite_mode=False):
         within_pos = next(self.move_within_word(overwrite_mode), None)
         if within_pos:
             self.position = within_pos
         else:
-            self.advance_to_next_word()
+            self.advance_to_next_blank()
 
     def move_within_word(self, overwrite_mode=False):
         word_spaces = self.current_word()
@@ -415,10 +445,16 @@ def main():
                 overwrite_mode = True
                 cursor.retreat_within_word()
 
-            elif keypress.name in ['KEY_TAB', 'KEY_PGDOWN']:
+            elif keypress.name in ['KEY_TAB']:
+                cursor.advance_to_next_blank()
+
+            elif keypress.name in ['KEY_PGDOWN']:
                 cursor.advance_to_next_word()
 
-            elif keypress.name in ['KEY_BTAB', 'KEY_PGUP']:
+            elif keypress.name in ['KEY_BTAB']:
+                cursor.retreat_to_previous_blank()
+
+            elif keypress.name in ['KEY_PGUP']:
                 cursor.retreat_to_previous_word()
 
             elif (keypress.name == 'KEY_ENTER' or keypress == ' ' or
