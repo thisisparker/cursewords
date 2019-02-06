@@ -395,7 +395,7 @@ def main():
                 num_index = grid.down_words_grouped.index(cursor.current_word())
                 clue = grid.down_clues[num_index]
 
-            num = str(num_index + 1)
+            num = str(grid.cells.get(cursor.current_word()[0]).number)
             compiled = (num + " " + cursor.direction.upper() \
                             + ": " + clue)
             with term.location(**info_location):
