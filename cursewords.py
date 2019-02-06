@@ -440,7 +440,7 @@ def main():
                 grid.cells.get(cursor.position).entry = keypress.upper()
                 cursor.advance_within_word(overwrite_mode)
 
-            elif keypress.name == 'KEY_DELETE':
+            elif not puzzle_complete and keypress.name == 'KEY_DELETE':
                 grid.cells.get(cursor.position).entry = ' '
                 overwrite_mode = True
                 cursor.retreat_within_word()
