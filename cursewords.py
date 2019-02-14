@@ -180,15 +180,15 @@ class Cursor:
 
     def advance(self):
         if self.direction == "across":
-            self.position = next(self.move_right())
+            self.position = self.move_right()
         elif self.direction == "down":
-            self.position = next(self.move_down())
+            self.position = self.move_down()
 
     def retreat(self):
         if self.direction == "across":
-            self.position = next(self.move_left())
+            self.position = self.move_left()
         elif self.direction == "down":
-            self.position = next(self.move_up())
+            self.position = self.move_up()
 
     def advance_to_next_blank(self):
         if self.direction == "across":
@@ -220,34 +220,39 @@ class Cursor:
 
         self.position = next(iter(blank_spaces), self.position)
 
-    def advance_within_word(self, overwrite_mode=False):
-        within_pos = next(self.move_within_word(overwrite_mode), None)
+    def advance_within_word(self, overwrite_mode=False, no_wrap_mode=False):
+        within_pos = self.move_within_word(overwrite_mode, no_wrap_mode)
         if within_pos:
             self.position = within_pos
         else:
-            self.advance_to_next_blank()
+            self.advance_to_next_word(blank_placement=True)
 
-    def move_within_word(self, overwrite_mode=False):
+    def move_within_word(self, overwrite_mode=False, no_wrap_mode=False):
         word_spaces = self.current_word()
         current_space = word_spaces.index(self.position)
-        ordered_spaces = (word_spaces[current_space + 1:] +
-                word_spaces[:current_space])
+        ordered_spaces = word_spaces[current_space + 1:]
+        if not no_wrap_mode:
+            ordered_spaces += word_spaces[:current_space]
         if not overwrite_mode:
             ordered_spaces = [pos for pos in ordered_spaces
                     if self.grid.cells.get(pos).entry == " "]
-        forever_spaces = itertools.cycle(ordered_spaces)
 
-        yield from forever_spaces
+        return next(iter(ordered_spaces), None)
 
-    def retreat_within_word(self):
+    def retreat_within_word(self, end_placement=False, blank_placement=False):
         pos_index = self.current_word().index(self.position)
+        earliest_blank = self.earliest_blank_in_word()
 
-        if pos_index > 0:
+        if (blank_placement and
+                earliest_blank and
+                self.position != earliest_blank):
+            self.position = earliest_blank
+        elif not blank_placement and pos_index > 0:
             self.position = self.current_word()[pos_index - 1]
         else:
-            self.retreat_to_previous_word(end_placement=True)
+            self.retreat_to_previous_word(end_placement, blank_placement)
 
-    def advance_to_next_word(self):
+    def advance_to_next_word(self, blank_placement=False):
         if self.direction == "across":
             word_group = self.grid.across_words
             next_words = self.grid.down_words_grouped
@@ -263,7 +268,14 @@ class Cursor:
         else:
             self.position = word_group[word_index + 1][0]
 
-    def retreat_to_previous_word(self, end_placement=False):
+        earliest_blank = self.earliest_blank_in_word()
+
+        if blank_placement and earliest_blank:
+            self.position = earliest_blank
+        elif blank_placement and not earliest_blank:
+            self.advance_to_next_word(blank_placement)
+
+    def retreat_to_previous_word(self, end_placement=False, blank_placement=False):
         if self.direction == "across":
             word_group = self.grid.across_words
             next_words = self.grid.down_words_grouped
@@ -272,7 +284,7 @@ class Cursor:
             next_words = self.grid.across_words
 
         word_index = word_group.index(self.current_word())
- 
+
         pos = -1 if end_placement else 0
 
         if word_index == 0:
@@ -282,39 +294,45 @@ class Cursor:
             new_word = word_group[word_index - 1]
             self.position = word_group[word_index -1][pos]
 
+        if blank_placement and self.earliest_blank_in_word():
+            self.position = self.earliest_blank_in_word()
+        elif blank_placement and not self.earliest_blank_in_word():
+            self.retreat_to_previous_word(end_placement, blank_placement)
+
+    def earliest_blank_in_word(self):
+        blanks = [pos for pos in self.current_word()
+                    if self.grid.cells.get(pos).entry == ' ']
+        return next(iter(blanks), None)
+
     def move_right(self):
         spaces = list(itertools.chain(*self.grid.across_words))
         current_space = spaces.index(self.position)
         ordered_spaces = spaces[current_space + 1:] + spaces[:current_space]
-        forever_spaces = itertools.cycle(ordered_spaces)
 
-        yield from forever_spaces
+        return next(iter(ordered_spaces))
 
     def move_left(self):
         spaces = list(itertools.chain(*self.grid.across_words))
         current_space = spaces.index(self.position)
         ordered_spaces = (spaces[current_space - 1::-1] + 
                           spaces[:current_space:-1])
-        forever_spaces = itertools.cycle(ordered_spaces)
 
-        yield from forever_spaces
+        return next(iter(ordered_spaces))
 
     def move_down(self):
         spaces = list(itertools.chain(*self.grid.down_words))
         current_space = spaces.index(self.position)
         ordered_spaces = spaces[current_space + 1:] + spaces[:current_space]
-        forever_spaces = itertools.cycle(ordered_spaces)
 
-        yield from forever_spaces
+        return next(iter(ordered_spaces))
 
     def move_up(self):
         spaces = list(itertools.chain(*self.grid.down_words))
         current_space = spaces.index(self.position)
         ordered_spaces = (spaces[current_space - 1::-1] + 
                           spaces[:current_space:-1])
-        forever_spaces = itertools.cycle(ordered_spaces)
 
-        yield from forever_spaces
+        return next(iter(ordered_spaces))
 
     def current_word(self):
         pos = self.position
@@ -443,16 +461,25 @@ def main():
             elif not puzzle_complete and keypress.name == 'KEY_DELETE':
                 grid.cells.get(cursor.position).entry = ' '
                 overwrite_mode = True
-                cursor.retreat_within_word()
+                cursor.retreat_within_word(end_placement=True)
 
-            elif keypress.name in ['KEY_TAB']:
-                cursor.advance_to_next_blank()
+            elif keypress.name in ['KEY_TAB'] and value == ' ':
+                cursor.advance_to_next_word(blank_placement=True)
+
+            elif keypress.name in ['KEY_TAB'] and value != ' ':
+                cursor.advance_within_word(overwrite_mode=False)
 
             elif keypress.name in ['KEY_PGDOWN']:
                 cursor.advance_to_next_word()
 
-            elif keypress.name in ['KEY_BTAB']:
-                cursor.retreat_to_previous_blank()
+            elif keypress.name in ['KEY_BTAB'] and value == ' ':
+                if cursor.earliest_blank_in_word():
+                    cursor.retreat_within_word(blank_placement=True)
+                else:
+                    cursor.retreat_to_previous_word(blank_placement=True)
+
+            elif keypress.name in ['KEY_BTAB'] and value != ' ':
+                cursor.retreat_to_previous_word(blank_placement=True)
 
             elif keypress.name in ['KEY_PGUP']:
                 cursor.retreat_to_previous_word()
