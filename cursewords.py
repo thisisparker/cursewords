@@ -364,6 +364,9 @@ def main():
     grid.number()
     grid.fill()
 
+    with term.location(0,0):
+        print(term.dim(term.reverse('    cursewords vX.X'.ljust(term.width))))
+
     start_pos = grid.across_words[0][0]
     cursor = Cursor(start_pos, "across", grid)
 
@@ -383,8 +386,8 @@ def main():
 #                        "correct: " + str(is_correct) + " " +
 #                        str(cursor.current_word())
 #                        + " " + str(cursor.direction)).ljust(2 * term.width))
-            with term.location(0, term.height - 2):
-                print("press escape to exit")
+            with term.location(0, term.height):
+                print("press escape to exit", end='')
 
             if cursor.direction == "across":
                 num_index = grid.across_words.index(cursor.current_word())
@@ -403,17 +406,17 @@ def main():
                 overwrite_mode = False
                 for position in old_word:
                     print(term.move(*grid.to_term(position)) +
-                            grid.cells.get(position).entry)
+                            term.bold(grid.cells.get(position).entry))
                 for position in cursor.current_word():
                     print(term.move(*grid.to_term(position)) +
-                            term.underline(grid.cells.get(position).entry))
+                            term.bold(term.underline(grid.cells.get(position).entry)))
             else:
                 print(term.move(*grid.to_term(old_position)) +
-                        term.underline(grid.cells.get(old_position).entry))
+                        term.bold(term.underline(grid.cells.get(old_position).entry)))
 
             value = grid.cells.get(cursor.position).entry
             print(term.move(*grid.to_term(cursor.position))
-                    + term.reverse(value))
+                    + term.bold(term.reverse(value)))
 
             if not puzzle_complete and all(
                     grid.cells.get(pos).entry == grid.cells.get(pos).solution
