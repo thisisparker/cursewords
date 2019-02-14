@@ -240,6 +240,11 @@ class Cursor:
 
         earliest_blank = self.earliest_blank_in_word()
 
+        if (blank_placement and
+                not any(self.grid.cells.get(pos).entry == ' ' for
+                pos in itertools.chain(*self.grid.across_words))):
+            blank_placement = False
+
         if blank_placement and earliest_blank:
             self.position = earliest_blank
         elif blank_placement and not earliest_blank:
@@ -364,7 +369,7 @@ def main():
 
     info_location = {'x':grid_x, 'y':grid_y + 2 * grid.row_count + 2}
 
-    with term.cbreak(), term.hidden_cursor():
+    with term.raw(), term.hidden_cursor():
         while repr(keypress) != 'KEY_ESCAPE':
 
             # Debugging output here:
