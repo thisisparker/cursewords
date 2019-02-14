@@ -240,11 +240,16 @@ class Cursor:
 
         earliest_blank = self.earliest_blank_in_word()
 
+        # If there are no blank squares left, override
+        # the blank_placement setting
         if (blank_placement and
                 not any(self.grid.cells.get(pos).entry == ' ' for
                 pos in itertools.chain(*self.grid.across_words))):
             blank_placement = False
 
+        # Otherwise, if blank_placement is on, put the
+        # cursor in the earliest available blank spot not
+        # in the current word
         if blank_placement and earliest_blank:
             self.position = earliest_blank
         elif blank_placement and not earliest_blank:
