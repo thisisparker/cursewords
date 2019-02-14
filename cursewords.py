@@ -190,36 +190,6 @@ class Cursor:
         elif self.direction == "down":
             self.position = self.move_up()
 
-    def advance_to_next_blank(self):
-        if self.direction == "across":
-            word_group = self.grid.across_words
-        elif self.direction == "down":
-            word_group = self.grid.down_words_grouped
-
-        spaces = list(itertools.chain(*word_group))
-        current_index = spaces.index(self.position)
-        ordered_spaces = spaces[current_index + 1:] + spaces[:current_index]
-
-        blank_spaces = [space for space in ordered_spaces if
-                self.grid.cells.get(space).entry == ' ']
-
-        self.position = next(iter(blank_spaces), self.position)
-
-    def retreat_to_previous_blank(self):
-        if self.direction == "across":
-            word_group = self.grid.across_words
-        elif self.direction == "down":
-            word_group = self.grid.down_words_grouped
-
-        spaces = list(itertools.chain(*word_group))
-        current_index = spaces.index(self.position)
-        ordered_spaces = spaces[current_index - 1::-1] + spaces[:current_index:-1]
-
-        blank_spaces = [space for space in ordered_spaces if
-                self.grid.cells.get(space).entry == ' ']
-
-        self.position = next(iter(blank_spaces), self.position)
-
     def advance_within_word(self, overwrite_mode=False, no_wrap_mode=False):
         within_pos = self.move_within_word(overwrite_mode, no_wrap_mode)
         if within_pos:
