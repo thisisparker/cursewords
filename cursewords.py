@@ -42,8 +42,12 @@ class Grid:
 
         for i in range(self.row_count):
             for j in range(self.column_count):
+                idx = i * self.column_count + j
+                entry = self.puzfile.fill[idx]
+                entry = entry if entry.isalnum() else None
                 self.cells[(j,i)] = Cell(
-                        self.puzfile.solution[i * self.column_count + j])
+                        self.puzfile.solution[idx],
+                        entry)
 
         self.across_words = []
         for i in range(self.row_count):
@@ -96,7 +100,7 @@ class Grid:
                         self.term.dim(middle_row))
         print(self.term.move(self.grid_y + self.row_count * 2, self.grid_x)
               + self.term.dim(bottom_row))
-       
+
         return None
 
     def number(self):
@@ -116,7 +120,7 @@ class Grid:
             y_coord, x_coord = self.to_term(position)
             cell = self.cells[position]
             if cell.is_letter():
-                print(self.term.move(y_coord, x_coord) + cell.entry)
+                print(self.term.move(y_coord, x_coord) + self.term.bold(cell.entry))
             elif cell.is_block():
                 print(self.term.move(y_coord, x_coord - 1) +
                         self.term.dim(squareblock))
@@ -127,6 +131,20 @@ class Grid:
                 print(self.term.move(y_coord - 1, x_pos) + small)
 
         return None
+
+    def save(self, filename):
+        fill = ''
+        for pos in self.cells:
+            cell = self.cells[pos]
+            if cell.is_block():
+                entry = "."
+            elif cell.entry == " ":
+                entry = "-"
+            else:
+                entry = cell.entry
+            fill += entry
+        self.puzfile.fill = fill
+        self.puzfile.save(filename)
 
     def to_term(self, position):
         point_x, point_y = position
@@ -335,7 +353,7 @@ class Cursor:
 
 def main():
     filename = sys.argv[1]
-    try: 
+    try:
         puzfile = puz.read(filename)
     except:
         sys.exit("Unable to parse {} as a .puz file.".format(filename))
@@ -365,7 +383,13 @@ def main():
     grid.fill()
 
     with term.location(0,0):
-        print(term.dim(term.reverse('    cursewords vX.X'.ljust(term.width))))
+        print(term.dim(term.reverse(term.ljust('    cursewords vX.X'))))
+
+    clue_width = int(1.5 * (4 * grid.column_count + 2))
+
+    clue_wrapper = textwrap.TextWrapper(
+            width = clue_width,
+            max_lines = 3)
 
     start_pos = grid.across_words[0][0]
     cursor = Cursor(start_pos, "across", grid)
@@ -374,11 +398,12 @@ def main():
     old_position = start_pos
     keypress = ''
     puzzle_complete = False
+    to_quit = False
 
     info_location = {'x':grid_x, 'y':grid_y + 2 * grid.row_count + 2}
 
     with term.raw(), term.hidden_cursor():
-        while repr(keypress) != 'KEY_ESCAPE':
+        while not to_quit:
 
             # Debugging output here:
 #            with term.location(0, term.height - 4):
@@ -386,8 +411,9 @@ def main():
 #                        "correct: " + str(is_correct) + " " +
 #                        str(cursor.current_word())
 #                        + " " + str(cursor.direction)).ljust(2 * term.width))
-            with term.location(0, term.height):
-                print("press escape to exit", end='')
+            with term.location(grid_x, term.height):
+                print(term.reverse("^Q") + " (q)uit",
+                      term.reverse("^S") + " (s)ave", sep='           ', end='')
 
             if cursor.direction == "across":
                 num_index = grid.across_words.index(cursor.current_word())
@@ -399,8 +425,14 @@ def main():
             num = str(grid.cells.get(cursor.current_word()[0]).number)
             compiled = (num + " " + cursor.direction.upper() \
                             + ": " + clue)
-            with term.location(**info_location):
-                print(compiled + term.clear_eol)
+
+            wrapped_clue = clue_wrapper.wrap(compiled)
+            wrapped_clue += [''] * (3 - len(wrapped_clue))
+            wrapped_clue = [line + term.clear_eol for line in wrapped_clue]
+
+            for offset in range(0,3):
+                print(term.move(info_location['y'] + offset, info_location['x']) +
+                    wrapped_clue[offset], end='')
 
             if cursor.current_word() is not old_word:
                 overwrite_mode = False
@@ -431,7 +463,13 @@ def main():
             old_position = cursor.position
             old_word = cursor.current_word()
 
-            if not puzzle_complete and keypress in string.ascii_letters:
+            if keypress == chr(17):
+                to_quit = True
+
+            elif keypress == chr(19):
+                grid.save(filename)
+
+            elif not puzzle_complete and keypress in string.ascii_letters:
                 if grid.cells.get(cursor.position).entry != " ":
                     overwrite_mode = True
                     # TODO this still doesn't feel quite right
