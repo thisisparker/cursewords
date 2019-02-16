@@ -392,7 +392,8 @@ def main():
     with term.location(0,0):
         print(term.dim(term.reverse(term.ljust('    cursewords vX.X'))))
 
-    clue_width = int(1.5 * (4 * grid.column_count + 2))
+    clue_width = min(int(1.5 * (4 * grid.column_count + 2) - grid_x),
+                     term.width - 2 - grid_x)
 
     clue_wrapper = textwrap.TextWrapper(
             width = clue_width,
