@@ -292,6 +292,13 @@ class Cursor:
             new_word = word_group[word_index - 1]
             self.position = word_group[word_index -1][pos]
 
+        # If there are no blank squares left, override
+        # the blank_placement setting
+        if (blank_placement and
+                not any(self.grid.cells.get(pos).entry == ' ' for
+                pos in itertools.chain(*self.grid.across_words))):
+            blank_placement = False
+
         if blank_placement and self.earliest_blank_in_word():
             self.position = self.earliest_blank_in_word()
         elif blank_placement and not self.earliest_blank_in_word():
@@ -454,7 +461,7 @@ def main():
                     grid.cells.get(pos).entry == grid.cells.get(pos).solution
                     for pos in itertools.chain(*grid.across_words)):
                 puzzle_complete = True
-                with term.location(x=info_location['x'], y=info_location['y']+1):
+                with term.location(x=info_location['x'], y=info_location['y']+3):
                     print(term.reverse("You've completed the puzzle!"),
                             term.clear_eol)
 
