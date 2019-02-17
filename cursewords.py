@@ -40,6 +40,9 @@ class Grid:
         self.row_count = puzfile.height
         self.column_count = puzfile.width
 
+        self.title = puzfile.title
+        self.author = puzfile.author
+
         for i in range(self.row_count):
             for j in range(self.column_count):
                 idx = i * self.column_count + j
@@ -367,7 +370,7 @@ def main():
 
     term = Terminal()
 
-    grid_x = 4
+    grid_x = 2
     grid_y = 2
 
     grid = Grid(grid_x, grid_y, term)
@@ -389,8 +392,20 @@ def main():
     grid.number()
     grid.fill()
 
+    software_info = 'cursewords vX.X'
+    puzzle_info = '{grid.title} - {grid.author}'.format(grid=grid)
+    padding = 2
+    sw_width = len(software_info) + 5
+    pz_width = term.width - sw_width - padding
+    if len(puzzle_info) > pz_width:
+        puzzle_info = "{}…".format(puzzle_info[:pz_width - 1])
+
+    headline = " {:<{pz_w}}{:>{sw_w}} ".format(
+            puzzle_info, software_info,
+            pz_w=pz_width, sw_w=sw_width)
+
     with term.location(0,0):
-        print(term.dim(term.reverse(term.ljust('    cursewords vX.X'))))
+        print(term.dim(term.reverse(headline)))
 
     clue_width = min(int(1.5 * (4 * grid.column_count + 2) - grid_x),
                      term.width - 2 - grid_x)
