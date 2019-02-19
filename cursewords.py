@@ -412,6 +412,16 @@ def main():
     with term.location(0,0):
         print(term.dim(term.reverse(headline)))
 
+    with term.location(grid_x, term.height):
+        toolbar = ''
+        commands = [("^Q", "quit"),
+                    ("^S", "save"),
+                    ("^C", "check puzzle")]
+        for shortcut, action in commands:
+            shortcut = term.reverse(shortcut)
+            toolbar += "{:<25}".format(' '.join([shortcut, action]))
+        print(toolbar, end='')
+
     clue_width = min(int(1.5 * (4 * grid.column_count + 2) - grid_x),
                      term.width - 2 - grid_x)
 
@@ -439,10 +449,6 @@ def main():
 #                        "correct: " + str(is_correct) + " " +
 #                        str(cursor.current_word())
 #                        + " " + str(cursor.direction)).ljust(2 * term.width))
-            with term.location(grid_x, term.height):
-                print(term.reverse("^Q") + " (q)uit",
-                      term.reverse("^S") + " (s)ave", 
-                      term.reverse("^C") + " (c)heck puzzle", sep='           ', end='')
 
             if cursor.direction == "across":
                 num_index = grid.across_words.index(cursor.current_word())
