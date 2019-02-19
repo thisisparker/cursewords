@@ -409,10 +409,10 @@ def main():
             puzzle_info, software_info,
             pz_w=pz_width, sw_w=sw_width)
 
-    with term.location(0,0):
+    with term.location(x=0, y=0):
         print(term.dim(term.reverse(headline)))
 
-    with term.location(grid_x, term.height):
+    with term.location(x=grid_x, y=term.height):
         toolbar = ''
         commands = [("^Q", "quit"),
                     ("^S", "save"),
