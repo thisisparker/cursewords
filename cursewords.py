@@ -28,6 +28,9 @@ class Cell:
     def is_letter(self):
         return self.solution in string.ascii_uppercase
 
+    def is_correct(self):
+        return self.entry == self.solution or self.is_block()
+
 class Grid:
     def __init__(self, grid_x, grid_y, term):
         self.grid_x = grid_x
@@ -354,11 +357,13 @@ class Cursor:
 
         return word
 
-    def is_off_grid(self, pos):
-        return (pos[0] < 0 or
-                pos[0] >= self.grid.row_count or
-                pos[1] < 0 or
-                pos[1] >= self.grid.column_count)
+
+def check_puzzle(grid):
+    for pos in grid.cells:
+        if not grid.cells.get(pos).is_correct():
+            value = grid.cells.get(pos).entry
+            print(grid.term.move(*grid.to_term(pos)) +
+                    grid.term.red(value.lower()))
 
 
 def main():
@@ -436,7 +441,8 @@ def main():
 #                        + " " + str(cursor.direction)).ljust(2 * term.width))
             with term.location(grid_x, term.height):
                 print(term.reverse("^Q") + " (q)uit",
-                      term.reverse("^S") + " (s)ave", sep='           ', end='')
+                      term.reverse("^S") + " (s)ave", 
+                      term.reverse("^C") + " (c)heck puzzle", sep='           ', end='')
 
             if cursor.direction == "across":
                 num_index = grid.across_words.index(cursor.current_word())
@@ -473,8 +479,7 @@ def main():
             print(term.move(*grid.to_term(cursor.position))
                     + term.bold(term.reverse(value)))
 
-            if not puzzle_complete and all(
-                    grid.cells.get(pos).entry == grid.cells.get(pos).solution
+            if not puzzle_complete and all(grid.cells.get(pos).is_correct()
                     for pos in itertools.chain(*grid.across_words)):
                 puzzle_complete = True
                 with term.location(x=info_location['x'], y=info_location['y']+3):
@@ -486,11 +491,17 @@ def main():
             old_position = cursor.position
             old_word = cursor.current_word()
 
+            # ctrl-q
             if keypress == chr(17):
                 to_quit = True
 
+            # ctrl-s
             elif keypress == chr(19):
                 grid.save(filename)
+
+            # ctrl-c
+            elif keypress == chr(3):
+                check_puzzle(grid)
 
             elif not puzzle_complete and keypress in string.ascii_letters:
                 if grid.cells.get(cursor.position).entry != " ":
