@@ -22,11 +22,18 @@ class Cell:
         else:
             self.entry = " "
 
+    def __str__(self):
+        entry = self.entry
+        return f'{{term.bold}}{entry}{{term.normal}}'
+
     def is_block(self):
         return self.solution == "."
 
     def is_letter(self):
         return self.solution in string.ascii_uppercase
+
+    def is_blank(self):
+        return self.entry == " "
 
     def is_correct(self):
         return self.entry == self.solution or self.is_block()
@@ -126,7 +133,8 @@ class Grid:
             y_coord, x_coord = self.to_term(position)
             cell = self.cells[position]
             if cell.is_letter():
-                print(self.term.move(y_coord, x_coord) + self.term.bold(cell.entry))
+                print(self.term.move(y_coord, x_coord)
+                        + str(cell).format(term=self.term))
             elif cell.is_block():
                 print(self.term.move(y_coord, x_coord - 1) +
                         self.term.dim(squareblock))
@@ -473,15 +481,16 @@ def main():
                 overwrite_mode = False
                 for position in old_word:
                     print(term.move(*grid.to_term(position)) +
-                            term.bold(grid.cells.get(position).entry))
+                            str(grid.cells.get(position)).format(term=term))
                 for position in cursor.current_word():
                     print(term.move(*grid.to_term(position)) +
-                            term.bold(term.underline(grid.cells.get(position).entry)))
+                            term.underline(str(grid.cells.get(position)).format(term=term)))
             else:
                 print(term.move(*grid.to_term(old_position)) +
-                        term.bold(term.underline(grid.cells.get(old_position).entry)))
+                        term.underline(str(grid.cells.get(old_position)).format(term=term)))
 
-            value = grid.cells.get(cursor.position).entry
+            current_cell = grid.cells.get(cursor.position)
+            value = current_cell.entry
             print(term.move(*grid.to_term(cursor.position))
                     + term.bold(term.reverse(value)))
 
@@ -510,24 +519,24 @@ def main():
                 check_puzzle(grid)
 
             elif not puzzle_complete and keypress in string.ascii_letters:
-                if grid.cells.get(cursor.position).entry != " ":
+                if not current_cell.is_blank():
                     overwrite_mode = True
                     # TODO this still doesn't feel quite right
                     # If you type in a few letters towards the end,
                     # you probably expect to proceed to the next word
                     # but I need to figure out the rule
-                grid.cells.get(cursor.position).entry = keypress.upper()
+                current_cell.entry = keypress.upper()
                 cursor.advance_within_word(overwrite_mode)
 
             elif not puzzle_complete and keypress.name == 'KEY_DELETE':
-                grid.cells.get(cursor.position).entry = ' '
+                current_cell.entry = ' '
                 overwrite_mode = True
                 cursor.retreat_within_word(end_placement=True)
 
-            elif keypress.name in ['KEY_TAB'] and value == ' ':
+            elif keypress.name in ['KEY_TAB'] and current_cell.is_blank():
                 cursor.advance_to_next_word(blank_placement=True)
 
-            elif keypress.name in ['KEY_TAB'] and value != ' ':
+            elif keypress.name in ['KEY_TAB'] and not current_cell.is_blank():
                 cursor.advance_within_word(overwrite_mode=False)
 
             elif keypress.name in ['KEY_PGDOWN']:
