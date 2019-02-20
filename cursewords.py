@@ -22,9 +22,10 @@ class Cell:
         else:
             self.entry = " "
 
+        self.marked_wrong = False
+
     def __str__(self):
-        entry = self.entry
-        return f'{{term.bold}}{entry}{{term.normal}}'
+        return self.entry
 
     def is_block(self):
         return self.solution == "."
@@ -133,8 +134,7 @@ class Grid:
             y_coord, x_coord = self.to_term(position)
             cell = self.cells[position]
             if cell.is_letter():
-                print(self.term.move(y_coord, x_coord)
-                        + str(cell).format(term=self.term))
+                self.draw_cell(position)
             elif cell.is_block():
                 print(self.term.move(y_coord, x_coord - 1) +
                         self.term.dim(squareblock))
@@ -195,6 +195,30 @@ class Grid:
     def get_divider_row(self):
         return self.make_row(ltee, hline, bigplus, rtee)
 
+    def compile_cell(self, position):
+        cell = self.cells.get(position)
+        value = cell.entry
+
+        if cell.marked_wrong:
+            value = self.term.red(value.lower())
+
+        value = self.term.bold(value)
+
+        return value
+
+    def draw_cell(self, position):
+        value = self.compile_cell(position)
+        print(self.term.move(*self.to_term(position)) + value)
+
+    def draw_highlighted_cell(self, position):
+        value = self.compile_cell(position)
+        value = self.term.underline(value)
+        print(self.term.move(*self.to_term(position)) + value)
+
+    def draw_cursor_cell(self, position):
+        value = self.compile_cell(position)
+        value = self.term.reverse(value)
+        print(self.term.move(*self.to_term(position)) + value)
 
 class Cursor:
     def __init__(self, position, direction, grid):
@@ -368,10 +392,10 @@ class Cursor:
 
 def check_puzzle(grid):
     for pos in grid.cells:
-        if not grid.cells.get(pos).is_correct():
-            value = grid.cells.get(pos).entry
-            print(grid.term.move(*grid.to_term(pos)) +
-                    grid.term.red(value.lower()))
+        cell = grid.cells.get(pos)
+        if not cell.is_blank() and not cell.is_correct():
+            cell.marked_wrong = True
+            grid.draw_cell(pos)
 
 
 def main():
@@ -451,48 +475,37 @@ def main():
     with term.raw(), term.hidden_cursor():
         while not to_quit:
 
-            # Debugging output here:
-#            with term.location(0, term.height - 4):
-#                print(str(repr(keypress) + " " +  str(cursor.position) + " " +
-#                        "correct: " + str(is_correct) + " " +
-#                        str(cursor.current_word())
-#                        + " " + str(cursor.direction)).ljust(2 * term.width))
-
-            if cursor.direction == "across":
-                num_index = grid.across_words.index(cursor.current_word())
-                clue = grid.across_clues[num_index]
-            elif cursor.direction == "down":
-                num_index = grid.down_words_grouped.index(cursor.current_word())
-                clue = grid.down_clues[num_index]
-
-            num = str(grid.cells.get(cursor.current_word()[0]).number)
-            compiled = (num + " " + cursor.direction.upper() \
-                            + ": " + clue)
-
-            wrapped_clue = clue_wrapper.wrap(compiled)
-            wrapped_clue += [''] * (3 - len(wrapped_clue))
-            wrapped_clue = [line + term.clear_eol for line in wrapped_clue]
-
-            for offset in range(0,3):
-                print(term.move(info_location['y'] + offset, info_location['x']) +
-                    wrapped_clue[offset], end='')
-
             if cursor.current_word() is not old_word:
                 overwrite_mode = False
-                for position in old_word:
-                    print(term.move(*grid.to_term(position)) +
-                            str(grid.cells.get(position)).format(term=term))
-                for position in cursor.current_word():
-                    print(term.move(*grid.to_term(position)) +
-                            term.underline(str(grid.cells.get(position)).format(term=term)))
+                for pos in old_word:
+                    grid.draw_cell(pos)
+                for pos in cursor.current_word():
+                    grid.draw_highlighted_cell(pos)
+
+                if cursor.direction == "across":
+                    num_index = grid.across_words.index(cursor.current_word())
+                    clue = grid.across_clues[num_index]
+                elif cursor.direction == "down":
+                    num_index = grid.down_words_grouped.index(cursor.current_word())
+                    clue = grid.down_clues[num_index]
+
+                num = str(grid.cells.get(cursor.current_word()[0]).number)
+                compiled = (num + " " + cursor.direction.upper() \
+                                + ": " + clue)
+                wrapped_clue = clue_wrapper.wrap(compiled)
+                wrapped_clue += [''] * (3 - len(wrapped_clue))
+                wrapped_clue = [line + term.clear_eol for line in wrapped_clue]
+
+                for offset in range(0,3):
+                    print(term.move(info_location['y'] + offset, info_location['x']) +
+                        wrapped_clue[offset], end='')
+
             else:
-                print(term.move(*grid.to_term(old_position)) +
-                        term.underline(str(grid.cells.get(old_position)).format(term=term)))
+                grid.draw_highlighted_cell(old_position)
 
             current_cell = grid.cells.get(cursor.position)
             value = current_cell.entry
-            print(term.move(*grid.to_term(cursor.position))
-                    + term.bold(term.reverse(value)))
+            grid.draw_cursor_cell(cursor.position)
 
             if not puzzle_complete and all(grid.cells.get(pos).is_correct()
                     for pos in itertools.chain(*grid.across_words)):
@@ -517,6 +530,7 @@ def main():
             # ctrl-c
             elif keypress == chr(3):
                 check_puzzle(grid)
+                old_word = []
 
             elif not puzzle_complete and keypress in string.ascii_letters:
                 if not current_cell.is_blank():
@@ -526,6 +540,8 @@ def main():
                     # you probably expect to proceed to the next word
                     # but I need to figure out the rule
                 current_cell.entry = keypress.upper()
+                current_cell.marked_wrong = False
+                current_cell.corrected = True
                 cursor.advance_within_word(overwrite_mode)
 
             elif not puzzle_complete and keypress.name == 'KEY_DELETE':
@@ -542,13 +558,13 @@ def main():
             elif keypress.name in ['KEY_PGDOWN']:
                 cursor.advance_to_next_word()
 
-            elif keypress.name in ['KEY_BTAB'] and value == ' ':
+            elif keypress.name in ['KEY_BTAB'] and current_cell.is_blank():
                 if cursor.earliest_blank_in_word():
                     cursor.retreat_within_word(blank_placement=True)
                 else:
                     cursor.retreat_to_previous_word(blank_placement=True)
 
-            elif keypress.name in ['KEY_BTAB'] and value != ' ':
+            elif keypress.name in ['KEY_BTAB'] and not current_cell.is_blank():
                 cursor.retreat_to_previous_word(blank_placement=True)
 
             elif keypress.name in ['KEY_PGUP']:
