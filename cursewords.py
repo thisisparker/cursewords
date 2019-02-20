@@ -5,6 +5,7 @@ import itertools
 import string
 import sys
 import textwrap
+import threading
 
 import puz
 
@@ -44,6 +45,8 @@ class Grid:
         self.grid_x = grid_x
         self.grid_y = grid_y
         self.term = term
+
+        self.notification_area = (term.height-2, self.grid_x)
 
     def load(self, puzfile):
         self.puzfile = puzfile
@@ -160,6 +163,8 @@ class Grid:
         self.puzfile.fill = fill
         self.puzfile.save(filename)
 
+        self.send_notification("Current puzzle state saved!")
+
     def to_term(self, position):
         point_x, point_y = position
         term_x = self.grid_x + (4 * point_x) + 2
@@ -219,6 +224,15 @@ class Grid:
         value = self.compile_cell(position)
         value = self.term.reverse(value)
         print(self.term.move(*self.to_term(position)) + value)
+
+    def send_notification(self, message, time=5):
+        timer = threading.Timer(time, self.clear_notification_area)
+        print(self.term.move(*self.notification_area)
+                + self.term.reverse(message))
+        timer.start()
+
+    def clear_notification_area(self):
+        print(self.term.move(*self.notification_area) + self.term.clear_eol)
 
 class Cursor:
     def __init__(self, position, direction, grid):
