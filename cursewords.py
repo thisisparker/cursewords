@@ -165,6 +165,14 @@ class Grid:
 
         self.send_notification("Current puzzle state saved!")
 
+    def check_puzzle(self):
+        self.send_notification("Checking puzzle for errors.")
+        for pos in self.cells:
+            cell = self.cells.get(pos)
+            if not cell.is_blank() and not cell.is_correct():
+                cell.marked_wrong = True
+                self.draw_cell(pos)
+
     def to_term(self, position):
         point_x, point_y = position
         term_x = self.grid_x + (4 * point_x) + 2
@@ -227,8 +235,9 @@ class Grid:
 
     def send_notification(self, message, time=5):
         timer = threading.Timer(time, self.clear_notification_area)
+        timer.daemon = True
         print(self.term.move(*self.notification_area)
-                + self.term.reverse(message))
+                + self.term.reverse(message) + self.term.clear_eol)
         timer.start()
 
     def clear_notification_area(self):
@@ -397,19 +406,10 @@ class Cursor:
 
         if self.direction == "across":
             word = [w for w in self.grid.across_words if pos in w][0] 
-
         if self.direction == "down":
             word = [w for w in self.grid.down_words if pos in w][0]
 
         return word
-
-
-def check_puzzle(grid):
-    for pos in grid.cells:
-        cell = grid.cells.get(pos)
-        if not cell.is_blank() and not cell.is_correct():
-            cell.marked_wrong = True
-            grid.draw_cell(pos)
 
 
 def main():
@@ -543,7 +543,7 @@ def main():
 
             # ctrl-c
             elif keypress == chr(3):
-                check_puzzle(grid)
+                grid.check_puzzle()
                 old_word = []
 
             elif not puzzle_complete and keypress in string.ascii_letters:
@@ -554,13 +554,17 @@ def main():
                     # you probably expect to proceed to the next word
                     # but I need to figure out the rule
                 current_cell.entry = keypress.upper()
-                current_cell.marked_wrong = False
-                current_cell.corrected = True
+                if current_cell.marked_wrong:
+                    current_cell.marked_wrong = False
+                    current_cell.corrected = True
                 cursor.advance_within_word(overwrite_mode)
 
             elif not puzzle_complete and keypress.name == 'KEY_DELETE':
                 current_cell.entry = ' '
                 overwrite_mode = True
+                if current_cell.marked_wrong:
+                    current_cell.marked_wrong = False
+                    current_cell.corrected = True
                 cursor.retreat_within_word(end_placement=True)
 
             elif keypress.name in ['KEY_TAB'] and current_cell.is_blank():
