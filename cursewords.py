@@ -40,6 +40,7 @@ class Cell:
     def is_correct(self):
         return self.entry == self.solution or self.is_block()
 
+
 class Grid:
     def __init__(self, grid_x, grid_y, term):
         self.grid_x = grid_x
@@ -243,6 +244,7 @@ class Grid:
     def clear_notification_area(self):
         print(self.term.move(*self.notification_area) + self.term.clear_eol)
 
+
 class Cursor:
     def __init__(self, position, direction, grid):
         self.position = position
@@ -411,6 +413,13 @@ class Cursor:
 
         return word
 
+    def go_to_numbered_square(self):
+        num = int(self.grid.term.inkey(3))
+        pos = next(iter([pos for pos in self.grid.cells 
+                if self.grid.cells.get(pos).number == num]), None)
+        if pos:
+            self.position = pos
+
 
 def main():
     filename = sys.argv[1]
@@ -545,6 +554,10 @@ def main():
             elif keypress == chr(3):
                 grid.check_puzzle()
                 old_word = []
+
+            # ctrl-g
+            elif keypress == chr(7):
+                cursor.go_to_numbered_square()
 
             elif not puzzle_complete and keypress in string.ascii_letters:
                 if not current_cell.is_blank():
