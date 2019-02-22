@@ -150,6 +150,19 @@ class Grid:
 
         return None
 
+    def confirm_quit(self, modified_since_save):
+        confirmed = True
+        if modified_since_save:
+            confirmation = self.get_notification_input("Quit without saving? (y/n)",
+                                chars=1, blocking=True, timeout=3)
+            if confirmation.lower() == 'y':
+                confirmed = True
+            else:
+                confirmed = False
+
+        return confirmed
+
+
     def save(self, filename):
         fill = ''
         for pos in self.cells:
@@ -164,10 +177,10 @@ class Grid:
         self.puzfile.fill = fill
         self.puzfile.save(filename)
 
-        self.send_notification("Current puzzle state saved!")
+        self.send_notification("Current puzzle state saved.")
 
     def check_puzzle(self):
-        self.send_notification("Checking puzzle for errors.")
+        self.send_notification("Puzzle has been checked for errors.")
         for pos in self.cells:
             cell = self.cells.get(pos)
             if not cell.is_blank() and not cell.is_correct():
@@ -234,41 +247,44 @@ class Grid:
         value = self.term.reverse(value)
         print(self.term.move(*self.to_term(position)) + value)
 
-    def get_square_number(self):
-        num = ''
-        keypress = ''
+    def get_notification_input(self, message, timeout=5, chars=3,
+            input_condition=str.isalnum, blocking=False):
 
-        input_phrase = "Enter square number:"
-
+        # If there's already a notification timer running, stop it.
         try:
             self.notification_timer.cancel()
         except:
             pass
 
+        input_phrase = message + " "
+        key_input_place = len(input_phrase)
         print(self.term.move(*self.notification_area)
                 + self.term.reverse(input_phrase)
                 + self.term.clear_eol)
 
-        key_input_place = len(input_phrase) + 1
-
-        while keypress is not None:
-            keypress = self.term.inkey(3)
-            if keypress.isdigit():
-                num += keypress
+        user_input = ''
+        keypress = None
+        while keypress != '' and len(user_input) < chars:
+            keypress = self.term.inkey(timeout)
+            if input_condition(keypress):
+                user_input += keypress
                 print(self.term.move(self.notification_area[0],
                     self.notification_area[1] + key_input_place),
-                    num)
+                    user_input)
+            elif keypress.name in ['KEY_DELETE']:
+                user_input = user_input[:-1]
+                print(self.term.move(self.notification_area[0],
+                    self.notification_area[1] + key_input_place),
+                    user_input + self.term.clear_eol)
+            elif blocking and keypress.name not in ['KEY_ENTER', 'KEY_ESCAPE']:
+                continue
             else:
                 break
 
-        if num:
-            num = int(num)
-            self.clear_notification_area()
+        return user_input
 
-        return num
-
-    def send_notification(self, message, time=5):
-        self.notification_timer = threading.Timer(time, self.clear_notification_area)
+    def send_notification(self, message, timeout=5):
+        self.notification_timer = threading.Timer(timeout, self.clear_notification_area)
         self.notification_timer.daemon = True
         print(self.term.move(*self.notification_area)
                 + self.term.reverse(message) + self.term.clear_eol)
@@ -357,7 +373,7 @@ class Cursor:
         # If there are no blank squares left, override
         # the blank_placement setting
         if (blank_placement and
-                not any(self.grid.cells.get(pos).entry == ' ' for
+                not any(self.grid.cells.get(pos).is_blank() for
                 pos in itertools.chain(*self.grid.across_words))):
             blank_placement = False
 
@@ -391,7 +407,7 @@ class Cursor:
         # If there are no blank squares left, override
         # the blank_placement setting
         if (blank_placement and
-                not any(self.grid.cells.get(pos).entry == ' ' for
+                not any(self.grid.cells.get(pos).is_blank() for
                 pos in itertools.chain(*self.grid.across_words))):
             blank_placement = False
 
@@ -402,7 +418,8 @@ class Cursor:
 
     def earliest_blank_in_word(self):
         blanks = [pos for pos in self.current_word()
-                    if self.grid.cells.get(pos).entry == ' ']
+                    if self.grid.cells.get(pos).is_blank()
+                    or self.grid.cells.get(pos).marked_wrong]
         return next(iter(blanks), None)
 
     def move_right(self):
@@ -447,21 +464,18 @@ class Cursor:
         return word
 
     def go_to_numbered_square(self):
-        num = self.grid.get_square_number()
-
+        num = self.grid.get_notification_input("Enter square number:",
+                                               input_condition=str.isdigit)
         if num:
             pos = next(iter([pos for pos in self.grid.cells 
-                if self.grid.cells.get(pos).number == num]), None)
-
+                if self.grid.cells.get(pos).number == int(num)]), None)
             if pos:
                 self.position = pos
-                self.grid.send_notification("Moved to square {}".format(str(num)))
-
+                self.grid.send_notification("Moved cursor to square {}.".format(num))
             else: 
                 self.grid.send_notification("Not a valid number.")
-
         else:
-            self.grid.send_notification("No valid number entered!")
+            self.grid.send_notification("No valid number entered.")
 
 
 def main():
@@ -518,7 +532,7 @@ def main():
                     ("^G", "go to number")]
         for shortcut, action in commands:
             shortcut = term.reverse(shortcut)
-            toolbar += "{:<25}".format(' '.join([shortcut, action]))
+            toolbar += "{:<30}".format(' '.join([shortcut, action]))
         print(toolbar, end='')
 
     clue_width = min(int(1.5 * (4 * grid.column_count + 2) - grid_x),
@@ -535,6 +549,7 @@ def main():
     old_position = start_pos
     keypress = ''
     puzzle_complete = False
+    modified_since_save = False
     to_quit = False
 
     info_location = {'x':grid_x, 'y':grid_y + 2 * grid.row_count + 2}
@@ -588,11 +603,14 @@ def main():
 
             # ctrl-q
             if keypress == chr(17):
-                to_quit = True
+                to_quit = grid.confirm_quit(modified_since_save)
+                if not to_quit:
+                    grid.send_notification("Quit command canceled.")
 
             # ctrl-s
             elif keypress == chr(19):
                 grid.save(filename)
+                modified_since_save = False
 
             # ctrl-c
             elif keypress == chr(3):
@@ -614,6 +632,7 @@ def main():
                 if current_cell.marked_wrong:
                     current_cell.marked_wrong = False
                     current_cell.corrected = True
+                modified_since_save = True
                 cursor.advance_within_word(overwrite_mode)
 
             elif not puzzle_complete and keypress.name == 'KEY_DELETE':
@@ -622,6 +641,7 @@ def main():
                 if current_cell.marked_wrong:
                     current_cell.marked_wrong = False
                     current_cell.corrected = True
+                modified_since_save = True
                 cursor.retreat_within_word(end_placement=True)
 
             elif keypress.name in ['KEY_TAB'] and current_cell.is_blank():
