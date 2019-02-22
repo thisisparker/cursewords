@@ -234,12 +234,45 @@ class Grid:
         value = self.term.reverse(value)
         print(self.term.move(*self.to_term(position)) + value)
 
+    def get_square_number(self):
+        num = ''
+        keypress = ''
+
+        input_phrase = "Enter square number:"
+
+        try:
+            self.notification_timer.cancel()
+        except:
+            pass
+
+        print(self.term.move(*self.notification_area)
+                + self.term.reverse(input_phrase)
+                + self.term.clear_eol)
+
+        key_input_place = len(input_phrase) + 1
+
+        while keypress is not None:
+            keypress = self.term.inkey(3)
+            if keypress.isdigit():
+                num += keypress
+                print(self.term.move(self.notification_area[0],
+                    self.notification_area[1] + key_input_place),
+                    num)
+            else:
+                break
+
+        if num:
+            num = int(num)
+            self.clear_notification_area()
+
+        return num
+
     def send_notification(self, message, time=5):
-        timer = threading.Timer(time, self.clear_notification_area)
-        timer.daemon = True
+        self.notification_timer = threading.Timer(time, self.clear_notification_area)
+        self.notification_timer.daemon = True
         print(self.term.move(*self.notification_area)
                 + self.term.reverse(message) + self.term.clear_eol)
-        timer.start()
+        self.notification_timer.start()
 
     def clear_notification_area(self):
         print(self.term.move(*self.notification_area) + self.term.clear_eol)
@@ -414,11 +447,21 @@ class Cursor:
         return word
 
     def go_to_numbered_square(self):
-        num = int(self.grid.term.inkey(3))
-        pos = next(iter([pos for pos in self.grid.cells 
+        num = self.grid.get_square_number()
+
+        if num:
+            pos = next(iter([pos for pos in self.grid.cells 
                 if self.grid.cells.get(pos).number == num]), None)
-        if pos:
-            self.position = pos
+
+            if pos:
+                self.position = pos
+                self.grid.send_notification("Moved to square {}".format(str(num)))
+
+            else: 
+                self.grid.send_notification("Not a valid number.")
+
+        else:
+            self.grid.send_notification("No valid number entered!")
 
 
 def main():
@@ -471,7 +514,8 @@ def main():
         toolbar = ''
         commands = [("^Q", "quit"),
                     ("^S", "save"),
-                    ("^C", "check puzzle")]
+                    ("^C", "check puzzle"),
+                    ("^G", "go to number")]
         for shortcut, action in commands:
             shortcut = term.reverse(shortcut)
             toolbar += "{:<25}".format(' '.join([shortcut, action]))
