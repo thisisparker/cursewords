@@ -716,7 +716,8 @@ def main():
                 modified_since_save = True
                 cursor.retreat_within_word(end_placement=True)
 
-            elif keypress.name in ['KEY_TAB'] and current_cell.is_blank():
+            elif (keypress.name in ['KEY_TAB'] and
+                    (current_cell.is_blank() or current_cell.marked_wrong)):
                 cursor.advance_to_next_word(blank_placement=True)
 
             elif keypress.name in ['KEY_TAB'] and not current_cell.is_blank():
@@ -725,7 +726,8 @@ def main():
             elif keypress.name in ['KEY_PGDOWN']:
                 cursor.advance_to_next_word()
 
-            elif keypress.name in ['KEY_BTAB'] and current_cell.is_blank():
+            elif (keypress.name in ['KEY_BTAB'] and
+                    (current_cell.is_blank() or current_cell.marked_wrong)):
                 if cursor.earliest_blank_in_word():
                     cursor.retreat_within_word(blank_placement=True)
                 else:
