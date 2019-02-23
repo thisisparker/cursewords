@@ -203,7 +203,7 @@ class Grid:
                 if cell.marked_wrong:
                     cell_md += 32
                 if cell.circled:
-                    cell += 128
+                    cell_md += 128
                 md.append(cell_md)
 
             self.puzfile.markup().markup = md
@@ -237,6 +237,14 @@ class Grid:
 
         return small_num
 
+    def encircle(self, letter):
+        circle_dict = {"A": "Ⓐ", "B":"Ⓑ", "C":"Ⓒ", "D":"Ⓓ", "E":"Ⓔ",
+                "F":"Ⓕ", "G":"Ⓖ", "H":"Ⓗ", "I":"Ⓘ", "J":"Ⓙ", "K":"Ⓚ",
+                "L":"Ⓛ", "M":"Ⓜ", "N":"Ⓝ", "O":"Ⓞ", "P":"Ⓟ", "Q":"Ⓠ",
+                "R":"Ⓡ", "S":"Ⓢ", "T":"Ⓣ", "U":"Ⓤ", "V":"Ⓥ", "W":"Ⓦ",
+                "X":"Ⓧ", "Y":"Ⓨ", "Z":"Ⓩ", " ":"◯"}
+        return circle_dict[letter]
+
     def make_row(self, leftmost, middle, divider, rightmost):
         row = leftmost
         for col in range(1, self.column_count * 4):
@@ -263,6 +271,9 @@ class Grid:
             value = " "
         else:
             value = cell.entry
+
+        if cell.circled:
+            value = self.encircle(value)
 
         if cell.marked_wrong:
             value = self.term.red(value.lower())
