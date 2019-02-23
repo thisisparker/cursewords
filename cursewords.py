@@ -2,7 +2,6 @@
 
 import collections
 import itertools
-import string
 import sys
 import textwrap
 import threading
@@ -34,7 +33,7 @@ class Cell:
         return self.solution == "."
 
     def is_letter(self):
-        return self.solution in string.ascii_uppercase
+        return self.solution.isalnum()
 
     def is_blank(self):
         return self.entry == "-"
@@ -213,13 +212,15 @@ class Grid:
 
         self.send_notification("Current puzzle state saved.")
 
-    def check_puzzle(self):
-        self.send_notification("Puzzle has been checked for errors.")
-        for pos in self.cells:
-            cell = self.cells.get(pos)
-            if not cell.is_blank() and not cell.is_correct():
-                cell.marked_wrong = True
-                self.draw_cell(pos)
+    def check_cell(self, pos):
+        cell = self.cells.get(pos)
+        if not cell.is_blank() and not cell.is_correct():
+            cell.marked_wrong = True
+            self.draw_cell(pos)
+
+    def check_cells(self, pos_list):
+        for pos in pos_list:
+            self.check_cell(pos)
 
     def to_term(self, position):
         point_x, point_y = position
@@ -265,7 +266,6 @@ class Grid:
 
         if cell.marked_wrong:
             value = self.term.red(value.lower())
-            pass
         else:
             value = self.term.bold(value)
 
@@ -573,11 +573,11 @@ def main():
         toolbar = ''
         commands = [("^Q", "quit"),
                     ("^S", "save"),
-                    ("^C", "check puzzle"),
-                    ("^G", "go to number")]
+                    ("^C", "check"),
+                    ("^G", "go to")]
         for shortcut, action in commands:
             shortcut = term.reverse(shortcut)
-            toolbar += "{:<30}".format(' '.join([shortcut, action]))
+            toolbar += "{:<25}".format(' '.join([shortcut, action]))
         print(toolbar, end='')
 
     clue_width = min(int(1.5 * (4 * grid.column_count + 2) - grid_x),
@@ -659,7 +659,26 @@ def main():
 
             # ctrl-c
             elif keypress == chr(3):
-                grid.check_puzzle()
+                group = grid.get_notification_input(
+                        "Check (s)quare, (w)ord, or (p)uzzle?",
+                        chars=1)
+                scope = ''
+                if group.lower() == 's':
+                    scope = 'square'
+                    grid.check_cell(cursor.position)
+                elif group.lower() == 'w':
+                    scope = 'word'
+                    grid.check_cells(cursor.current_word())
+                elif group.lower() == 'p':
+                    scope = 'puzzle'
+                    grid.check_cells(grid.cells)
+
+                if scope:
+                    grid.send_notification("Checked {scope} for errors.".
+                            format(scope=scope))
+                else:
+                    grid.send_notification("No valid input entered.")
+
                 old_word = []
 
             # ctrl-g
