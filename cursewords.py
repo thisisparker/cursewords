@@ -21,9 +21,11 @@ class Cell:
         if entry:
             self.entry = entry
         else:
-            self.entry = " "
+            self.entry = "-"
 
         self.marked_wrong = False
+        self.corrected = False
+        self.circled = False
 
     def __str__(self):
         return self.entry
@@ -35,7 +37,7 @@ class Cell:
         return self.solution in string.ascii_uppercase
 
     def is_blank(self):
-        return self.entry == " "
+        return self.entry == "-"
 
     def is_correct(self):
         return self.entry == self.solution or self.is_block()
@@ -62,7 +64,6 @@ class Grid:
             for j in range(self.column_count):
                 idx = i * self.column_count + j
                 entry = self.puzfile.fill[idx]
-                entry = entry if entry.isalnum() else None
                 self.cells[(j,i)] = Cell(
                         self.puzfile.solution[idx],
                         entry)
@@ -97,6 +98,22 @@ class Grid:
         num = self.puzfile.clue_numbering()
         self.across_clues = [word['clue'] for word in num.across]
         self.down_clues = [word['clue'] for word in num.down]
+
+        if self.puzfile.has_markup():
+            markup = self.puzfile.markup().markup
+
+            for md, pos in zip(markup, self.cells):
+                cell = self.cells.get(pos)
+                if md >= 128:
+                    cell.circled = True
+                    md -= 128
+                if md >= 64:
+                    md -= 64
+                if md >= 32:
+                    cell.marked_wrong = True
+                    md -= 32
+                if md == 16:
+                    cell.corrected = True
 
         return None
 
@@ -154,7 +171,7 @@ class Grid:
         confirmed = True
         if modified_since_save:
             confirmation = self.get_notification_input("Quit without saving? (y/n)",
-                                chars=1, blocking=True, timeout=3)
+                                chars=1, blocking=True, timeout=5)
             if confirmation.lower() == 'y':
                 confirmed = True
             else:
@@ -169,12 +186,29 @@ class Grid:
             cell = self.cells[pos]
             if cell.is_block():
                 entry = "."
-            elif cell.entry == " ":
+            elif cell.is_blank():
                 entry = "-"
             else:
                 entry = cell.entry
             fill += entry
         self.puzfile.fill = fill
+
+        if any(self.cells.get(pos).marked_wrong or self.cells.get(pos).corrected
+                for pos in self.cells):
+            md = []
+            for pos in self.cells:
+                cell = self.cells[pos]
+                cell_md = 0
+                if cell.corrected:
+                    cell_md += 16
+                if cell.marked_wrong:
+                    cell_md += 32
+                if cell.circled:
+                    cell += 128
+                md.append(cell_md)
+
+            self.puzfile.markup().markup = md
+
         self.puzfile.save(filename)
 
         self.send_notification("Current puzzle state saved.")
@@ -224,27 +258,37 @@ class Grid:
 
     def compile_cell(self, position):
         cell = self.cells.get(position)
-        value = cell.entry
+        if cell.is_blank():
+            value = " "
+        else:
+            value = cell.entry
 
         if cell.marked_wrong:
             value = self.term.red(value.lower())
+            pass
+        else:
+            value = self.term.bold(value)
 
-        value = self.term.bold(value)
+        markup = ''
 
-        return value
+        if cell.corrected:
+            markup = self.term.red(".")
+
+        return value, markup
 
     def draw_cell(self, position):
-        value = self.compile_cell(position)
+        value, markup = self.compile_cell(position)
+        value += markup
         print(self.term.move(*self.to_term(position)) + value)
 
     def draw_highlighted_cell(self, position):
-        value = self.compile_cell(position)
-        value = self.term.underline(value)
+        value, markup = self.compile_cell(position)
+        value = self.term.underline(value) + markup
         print(self.term.move(*self.to_term(position)) + value)
 
     def draw_cursor_cell(self, position):
-        value = self.compile_cell(position)
-        value = self.term.reverse(value)
+        value, markup = self.compile_cell(position)
+        value = self.term.reverse(value) + markup
         print(self.term.move(*self.to_term(position)) + value)
 
     def get_notification_input(self, message, timeout=5, chars=3,
@@ -335,7 +379,8 @@ class Cursor:
             ordered_spaces += word_spaces[:current_space]
         if not overwrite_mode:
             ordered_spaces = [pos for pos in ordered_spaces
-                    if self.grid.cells.get(pos).entry == " "]
+                    if self.grid.cells.get(pos).is_blank() or
+                       self.grid.cells.get(pos).marked_wrong]
 
         return next(iter(ordered_spaces), None)
 
@@ -621,14 +666,11 @@ def main():
             elif keypress == chr(7):
                 cursor.go_to_numbered_square()
 
-            elif not puzzle_complete and keypress in string.ascii_letters:
-                if not current_cell.is_blank():
+            elif not puzzle_complete and keypress.isalnum():
+                if not current_cell.is_blank() and not current_cell.marked_wrong:
                     overwrite_mode = True
-                    # TODO this still doesn't feel quite right
-                    # If you type in a few letters towards the end,
-                    # you probably expect to proceed to the next word
-                    # but I need to figure out the rule
                 current_cell.entry = keypress.upper()
+
                 if current_cell.marked_wrong:
                     current_cell.marked_wrong = False
                     current_cell.corrected = True
