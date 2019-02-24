@@ -676,6 +676,7 @@ def main():
         toolbar = ''
         commands = [("^Q", "quit"),
                     ("^S", "save"),
+                    ("^P", "pause"),
                     ("^C", "check"),
                     ("^G", "go to"),
                     ("^X", "clear")]
