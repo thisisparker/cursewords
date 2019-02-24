@@ -637,7 +637,8 @@ def main():
 
     with term.raw(), term.hidden_cursor():
         while not to_quit:
-
+            # First up we draw all the necessary stuff. If the current word
+            # is different from the word the last time through the loop:
             if cursor.current_word() is not old_word:
                 overwrite_mode = False
                 for pos in old_word:
@@ -645,6 +646,7 @@ def main():
                 for pos in cursor.current_word():
                     grid.draw_highlighted_cell(pos)
 
+            # Draw the clue for the new word:
                 if cursor.direction == "across":
                     num_index = grid.across_words.index(cursor.current_word())
                     clue = grid.across_clues[num_index]
@@ -663,6 +665,8 @@ def main():
                     print(term.move(info_location['y'] + offset, info_location['x']) +
                         wrapped_clue[offset], end='')
 
+            # Otherwise, just draw the old square now that it's not under
+            # the cursor
             else:
                 grid.draw_highlighted_cell(old_position)
 
@@ -670,6 +674,7 @@ def main():
             value = current_cell.entry
             grid.draw_cursor_cell(cursor.position)
 
+            # Check if the puzzle is complete!
             if not puzzle_complete and all(grid.cells.get(pos).is_correct()
                     for pos in itertools.chain(*grid.across_words)):
                 puzzle_complete = True
@@ -677,6 +682,7 @@ def main():
                     print(term.reverse("You've completed the puzzle!"),
                             term.clear_eol)
 
+            # Where the magic happens: get key input
             keypress = term.inkey()
 
             old_position = cursor.position
