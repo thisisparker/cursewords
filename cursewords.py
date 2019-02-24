@@ -375,19 +375,18 @@ class Cursor:
         elif self.direction == "down":
             self.position = self.move_up()
 
-    def advance_within_word(self, overwrite_mode=False, no_wrap_mode=False):
-        within_pos = self.move_within_word(overwrite_mode, no_wrap_mode)
+    def advance_within_word(self, overwrite_mode=False):
+        within_pos = self.move_within_word(overwrite_mode)
         if within_pos:
             self.position = within_pos
         else:
             self.advance_to_next_word(blank_placement=True)
 
-    def move_within_word(self, overwrite_mode=False, no_wrap_mode=False):
+    def move_within_word(self, overwrite_mode=False):
         word_spaces = self.current_word()
         current_space = word_spaces.index(self.position)
         ordered_spaces = word_spaces[current_space + 1:]
-        if not no_wrap_mode:
-            ordered_spaces += word_spaces[:current_space]
+
         if not overwrite_mode:
             ordered_spaces = [pos for pos in ordered_spaces
                     if self.grid.cells.get(pos).is_blank() or
