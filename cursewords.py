@@ -3,6 +3,7 @@
 import collections
 import itertools
 import sys
+import time
 import textwrap
 import threading
 
@@ -120,6 +121,12 @@ class Grid:
                 if md == 16:
                     cell.corrected = True
 
+        timer_bytes = self.puzfile.extensions.get(puz.Extensions.Timer, None)
+        if timer_bytes:
+            self.start_time, self.timer_active = timer_bytes.decode().split(',')
+        else:
+            self.start_time, self.timer_active = 0, 1
+
         return None
 
     def draw(self):
@@ -223,6 +230,7 @@ class Grid:
                 md.append(cell_md)
 
             self.puzfile.markup().markup = md
+
 
         self.puzfile.save(filename)
 
@@ -551,6 +559,66 @@ class Cursor:
         else:
             self.grid.send_notification("No valid number entered.")
 
+class Timer(threading.Thread):
+    def __init__(self, grid, starting_seconds=0, is_running=True, active=True):
+        self.starting_seconds = starting_seconds
+        self.is_running = is_running
+        self.active = active
+
+        super().__init__(daemon=True)
+
+        self.grid = grid
+
+    def run(self):
+        self.start_time = time.time()
+        self.time_passed = self.starting_seconds
+
+        self.show_time()
+
+        while self.active:
+            if self.is_running:
+                self.time_passed = (self.starting_seconds
+                                   + int(time.time() - self.start_time))
+                self.show_time()
+
+            time.sleep(0.2)
+
+    def show_time(self):
+        y_coord = self.grid.grid_y + self.grid.row_count * 2 + 5
+        x_coord = self.grid.grid_x + self.grid.column_count * 4 - 7
+
+        print(self.grid.term.move(y_coord, x_coord)
+                + self.display_format())
+
+    def display_format(self):
+        time_amount = self.time_passed
+
+        m, s = divmod(time_amount, 60)
+        h, m = divmod(m, 60)
+
+        ch = '{h:02d}:' if h else '   '
+        compiled = '{ch}{m:02d}:{s:02d}'.format(ch=ch, m=m, s=s)
+
+        return compiled
+
+    def save_format(self):
+        time_amount = self.time_passed
+
+        save_string = '{t},{r}'.format(
+                t=int(time_amount), r=int(self.active))
+
+        save_bytes = save_string.encode(puz.ENCODING)
+
+        return save_bytes
+
+    def pause(self):
+        self.is_running = False
+
+    def unpause(self):
+        self.starting_seconds = self.time_passed
+        self.start_time = time.time()
+        self.is_running = True
+
 
 def main():
     filename = sys.argv[1]
@@ -629,9 +697,14 @@ def main():
     old_word = []
     old_position = start_pos
     keypress = ''
+    puzzle_paused = False
     puzzle_complete = False
     modified_since_save = False
     to_quit = False
+
+    timer = Timer(grid, starting_seconds=int(grid.start_time),
+                  is_running=True, active=bool(int(grid.timer_active)))
+    timer.start()
 
     info_location = {'x':grid_x, 'y':grid_y + 2 * grid.row_count + 2}
 
@@ -681,6 +754,8 @@ def main():
                 with term.location(x=info_location['x'], y=info_location['y']+3):
                     print(term.reverse("You've completed the puzzle!"),
                             term.clear_eol)
+                timer.show_time()
+                timer.active = False
 
             # Where the magic happens: get key input
             keypress = term.inkey()
@@ -696,8 +771,33 @@ def main():
 
             # ctrl-s
             elif keypress == chr(19):
+                grid.puzfile.extensions[puz.Extensions.Timer] = timer.save_format()
                 grid.save(filename)
                 modified_since_save = False
+
+            # ctrl-p
+            elif keypress == chr(16) and not puzzle_complete:
+                if timer.is_running:
+                    timer.pause()
+                    grid.draw()
+
+                    print(term.move(info_location['y'], info_location['x'])
+                            + 'PUZZLE PAUSED' + term.clear_eol
+                            + '\n' + term.clear_eol
+                            + '\n' + term.clear_eol)
+
+                    puzzle_paused = True
+
+                else:
+                    timer.unpause()
+                    grid.fill()
+                    old_word = []
+
+                    puzzle_paused = False
+
+
+            elif puzzle_paused:
+                continue
 
             # ctrl-c
             elif keypress == chr(3):
@@ -741,6 +841,8 @@ def main():
                     modified_since_save = True
                 else:
                     grid.send_notification("Clear command canceled.")
+
+
 
             elif not puzzle_complete and keypress.isalnum():
                 if not current_cell.is_blank() and not current_cell.marked_wrong:
