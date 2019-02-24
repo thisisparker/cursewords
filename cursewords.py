@@ -558,6 +558,12 @@ def main():
             grid.column_count, grid.row_count))
         sys.exit(''.join(exit_text.splitlines()))
 
+    if grid.puzfile.has_rebus():
+        exit_text = textwrap.dedent("""\
+        This puzzle contains features not yet supported
+        by cursewords. Sorry about that!""")
+        sys.exit(''.join(exit_text.splitlines()))
+
     print(term.enter_fullscreen())
     print(term.clear())
 
@@ -708,7 +714,7 @@ def main():
                 cursor.advance_within_word(overwrite_mode)
 
             elif not puzzle_complete and keypress.name == 'KEY_DELETE':
-                current_cell.entry = ' '
+                current_cell.entry = '-'
                 overwrite_mode = True
                 if current_cell.marked_wrong:
                     current_cell.marked_wrong = False
