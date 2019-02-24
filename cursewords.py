@@ -401,7 +401,7 @@ class Cursor:
 
         if (blank_placement and
                 earliest_blank and
-                self.position != earliest_blank):
+                pos_index > self.current_word().index(earliest_blank)):
             self.position = earliest_blank
         elif not blank_placement and pos_index > 0:
             self.position = self.current_word()[pos_index - 1]
@@ -732,15 +732,8 @@ def main():
             elif keypress.name in ['KEY_PGDOWN']:
                 cursor.advance_to_next_word()
 
-            elif (keypress.name in ['KEY_BTAB'] and
-                    (current_cell.is_blank() or current_cell.marked_wrong)):
-                if cursor.earliest_blank_in_word():
-                    cursor.retreat_within_word(blank_placement=True)
-                else:
-                    cursor.retreat_to_previous_word(blank_placement=True)
-
-            elif keypress.name in ['KEY_BTAB'] and not current_cell.is_blank():
-                cursor.retreat_to_previous_word(blank_placement=True)
+            elif keypress.name in ['KEY_BTAB']:
+                cursor.retreat_within_word(blank_placement=True)
 
             elif keypress.name in ['KEY_PGUP']:
                 cursor.retreat_to_previous_word()
