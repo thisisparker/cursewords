@@ -29,6 +29,12 @@ class Cell:
     def __str__(self):
         return self.entry
 
+    def clear(self):
+        self.entry = "-"
+        if self.marked_wrong:
+            self.marked_wrong = False
+            self.corrected = True
+
     def is_block(self):
         return self.solution == "."
 
@@ -175,6 +181,16 @@ class Grid:
                 confirmed = True
             else:
                 confirmed = False
+
+        return confirmed
+
+    def confirm_clear(self):
+        confirmation = self.get_notification_input("Clear puzzle? (y/n)",
+                                chars=1, blocking=True, timeout=5)
+        if confirmation.lower() == 'y':
+            confirmed = True
+        else:
+            confirmed = False
 
         return confirmed
 
@@ -375,17 +391,20 @@ class Cursor:
         elif self.direction == "down":
             self.position = self.move_up()
 
-    def advance_within_word(self, overwrite_mode=False):
-        within_pos = self.move_within_word(overwrite_mode)
+    def advance_within_word(self, overwrite_mode=False, wrap_mode=False):
+        within_pos = self.move_within_word(overwrite_mode, wrap_mode)
         if within_pos:
             self.position = within_pos
         else:
             self.advance_to_next_word(blank_placement=True)
 
-    def move_within_word(self, overwrite_mode=False):
+    def move_within_word(self, overwrite_mode=False, wrap_mode=False):
         word_spaces = self.current_word()
         current_space = word_spaces.index(self.position)
         ordered_spaces = word_spaces[current_space + 1:]
+
+        if wrap_mode:
+            ordered_spaces += word_spaces[:current_space]
 
         if not overwrite_mode:
             ordered_spaces = [pos for pos in ordered_spaces
@@ -590,7 +609,8 @@ def main():
         commands = [("^Q", "quit"),
                     ("^S", "save"),
                     ("^C", "check"),
-                    ("^G", "go to")]
+                    ("^G", "go to"),
+                    ("^X", "clear")]
         for shortcut, action in commands:
             shortcut = term.reverse(shortcut)
             toolbar += "{:<25}".format(' '.join([shortcut, action]))
@@ -701,6 +721,21 @@ def main():
             elif keypress == chr(7):
                 cursor.go_to_numbered_square()
 
+            # ctrl-x
+            elif keypress == chr(24):
+                confirm = grid.confirm_clear()
+                if confirm:
+                    grid.send_notification("Puzzle cleared.")
+                    for pos in grid.cells:
+                        cell = grid.cells.get(pos)
+                        if cell.is_letter():
+                            grid.cells.get(pos).clear()
+                            grid.draw_cell(pos)
+                    old_word = []
+                    modified_since_save = True
+                else:
+                    grid.send_notification("Clear command canceled.")
+
             elif not puzzle_complete and keypress.isalnum():
                 if not current_cell.is_blank() and not current_cell.marked_wrong:
                     overwrite_mode = True
@@ -710,14 +745,11 @@ def main():
                     current_cell.marked_wrong = False
                     current_cell.corrected = True
                 modified_since_save = True
-                cursor.advance_within_word(overwrite_mode)
+                cursor.advance_within_word(overwrite_mode, wrap_mode=True)
 
             elif not puzzle_complete and keypress.name == 'KEY_DELETE':
-                current_cell.entry = '-'
+                current_cell.clear()
                 overwrite_mode = True
-                if current_cell.marked_wrong:
-                    current_cell.marked_wrong = False
-                    current_cell.corrected = True
                 modified_since_save = True
                 cursor.retreat_within_word(end_placement=True)
 
