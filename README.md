@@ -2,7 +2,7 @@
 
 `cursewords` is a "graphical" command line program for solving crossword puzzles in the terminal. It can be used to open files saved in the widely used AcrossLite `.puz` format.
 
-![An animated demo of cursewords in action.](demo.gif)
+<img src="https://raw.githubusercontent.com/thisisparker/cursewords/master/demo.gif" width=450px>
 
 `cursewords` includes nearly every major feature you might expect in a crossword program, including:
 
