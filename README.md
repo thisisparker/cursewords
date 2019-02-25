@@ -29,6 +29,6 @@ You should then be ready to go. For now, use `cursewords` to open `.puz` files d
 
 ## Usage
 
-If you've used a program to solve crossword puzzles, navigation should be pretty intuitive. `tab` and `shift+tab` are the workhorses for navigation between blanks. `page up` and `page down` (on Mac, `ctrl+` arrow keys) jump between words without considering blank spaces. `ctrl+g`, followed by a number, will jump directly to the space with that number.
+If you've used a program to solve crossword puzzles, navigation should be pretty intuitive. `tab` and `shift+tab` are the workhorses for navigation between blanks. `page up` and `page down` (on Mac, `Fn+` arrow keys) jump between words without considering blank spaces. `ctrl+g`, followed by a number, will jump directly to the space with that number.
 
 If you need some help, `ctrl+c` will check the current square, word, or entire puzzle for errors.
