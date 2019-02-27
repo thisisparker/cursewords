@@ -174,7 +174,7 @@ class Grid:
                         self.term.dim(squareblock))
 
             if cell.number:
-                small = self.small_nums(cell.number)
+                small = small_nums(cell.number)
                 x_pos = x_coord - 1
                 print(self.term.move(y_coord - 1, x_pos) + small)
 
@@ -251,22 +251,6 @@ class Grid:
         term_y = self.grid_y + (2 * point_y) + 1
         return (term_y, term_x)
 
-    def small_nums(self, number):
-        small_num = ""
-        num_dict = {"1": "₁", "2": "₂", "3": "₃", "4": "₄", "5": "₅",
-                    "6": "₆", "7": "₇", "8": "₈", "9": "₉", "0": "₀"}
-        for digit in str(number):
-            small_num += num_dict[digit]
-
-        return small_num
-
-    def encircle(self, letter):
-        circle_dict = {"A": "Ⓐ", "B": "Ⓑ", "C": "Ⓒ", "D": "Ⓓ", "E": "Ⓔ", "F": "Ⓕ",
-                       "G": "Ⓖ", "H": "Ⓗ", "I": "Ⓘ", "J": "Ⓙ", "K": "Ⓚ", "L": "Ⓛ",
-                       "M": "Ⓜ", "N": "Ⓝ", "O": "Ⓞ", "P": "Ⓟ", "Q": "Ⓠ", "R": "Ⓡ",
-                       "S": "Ⓢ", "T": "Ⓣ", "U": "Ⓤ", "V": "Ⓥ", "W": "Ⓦ", "X": "Ⓧ",
-                       "Y": "Ⓨ", "Z": "Ⓩ", " ": "◯"}
-        return circle_dict[letter]
 
     def make_row(self, leftmost, middle, divider, rightmost):
         row = leftmost
@@ -296,7 +280,7 @@ class Grid:
             value = cell.entry
 
         if cell.circled:
-            value = self.encircle(value)
+            value = encircle(value)
 
         if cell.marked_wrong:
             value = self.term.red(value.lower())
@@ -586,7 +570,7 @@ class Timer(threading.Thread):
             time.sleep(0.2)
 
     def show_time(self):
-        y_coord = self.grid.grid_y + self.grid.row_count * 2 + 5
+        y_coord = 2 # self.grid.grid_y + self.grid.row_count * 2 + 5
         x_coord = self.grid.grid_x + self.grid.column_count * 4 - 7
 
         print(self.grid.term.move(y_coord, x_coord)
@@ -622,6 +606,24 @@ class Timer(threading.Thread):
         self.is_running = True
 
 
+def small_nums(number):
+    small_num = ""
+    num_dict = {"1": "₁", "2": "₂", "3": "₃", "4": "₄", "5": "₅",
+                "6": "₆", "7": "₇", "8": "₈", "9": "₉", "0": "₀"}
+    for digit in str(number):
+        small_num += num_dict[digit]
+
+    return small_num
+
+def encircle(letter):
+    circle_dict = {"A": "Ⓐ", "B": "Ⓑ", "C": "Ⓒ", "D": "Ⓓ", "E": "Ⓔ", "F": "Ⓕ",
+                   "G": "Ⓖ", "H": "Ⓗ", "I": "Ⓘ", "J": "Ⓙ", "K": "Ⓚ", "L": "Ⓛ",
+                   "M": "Ⓜ", "N": "Ⓝ", "O": "Ⓞ", "P": "Ⓟ", "Q": "Ⓠ", "R": "Ⓡ",
+                   "S": "Ⓢ", "T": "Ⓣ", "U": "Ⓤ", "V": "Ⓥ", "W": "Ⓦ", "X": "Ⓧ",
+                   "Y": "Ⓨ", "Z": "Ⓩ", " ": "◯"}
+    return circle_dict[letter]
+
+
 def main():
     filename = sys.argv[1]
     try:
@@ -632,7 +634,7 @@ def main():
     term = Terminal()
 
     grid_x = 2
-    grid_y = 2
+    grid_y = 4
 
     grid = Grid(grid_x, grid_y, term)
     grid.load(puzfile)
@@ -640,17 +642,17 @@ def main():
     if ((term.width < grid_x + 4 * grid.column_count + 2) or
             term.height < grid_y + 2 * grid.row_count + 6):
         exit_text = textwrap.dedent("""\
-        This puzzle is {} columns wide and {} rows tall. \
-        The current terminal window is too small to \
+        This puzzle is {} columns wide and {} rows tall.
+        The current terminal window is too small to
         properly display it.""".format(
             grid.column_count, grid.row_count))
-        sys.exit(''.join(exit_text.splitlines()))
+        sys.exit(' '.join(exit_text.splitlines()))
 
     if grid.puzfile.has_rebus():
         exit_text = textwrap.dedent("""\
-        This puzzle contains features not yet supported \
+        This puzzle contains features not yet supported
         by cursewords. Sorry about that!""")
-        sys.exit(''.join(exit_text.splitlines()))
+        sys.exit(' '.join(exit_text.splitlines()))
 
     print(term.enter_fullscreen())
     print(term.clear())
@@ -691,8 +693,8 @@ def main():
                      term.width - 2 - grid_x)
 
     clue_wrapper = textwrap.TextWrapper(
-            width = clue_width,
-            max_lines = 3)
+            width=clue_width,
+            max_lines=3)
 
     start_pos = grid.across_words[0][0]
     cursor = Cursor(start_pos, "across", grid)
@@ -757,7 +759,7 @@ def main():
             if not puzzle_complete and all(grid.cells.get(pos).is_correct()
                     for pos in itertools.chain(*grid.across_words)):
                 puzzle_complete = True
-                with term.location(x=info_location['x'], y=info_location['y']+3):
+                with term.location(x=grid_x, y=2):
                     print(term.reverse("You've completed the puzzle!"),
                             term.clear_eol)
                 timer.show_time()
@@ -808,11 +810,11 @@ def main():
             # ctrl-c
             elif keypress == chr(3):
                 group = grid.get_notification_input(
-                        "Check (s)quare, (w)ord, or (p)uzzle?",
+                        "Check (l)etter, (w)ord, or (p)uzzle?",
                         chars=1)
                 scope = ''
-                if group.lower() == 's':
-                    scope = 'square'
+                if group.lower() == 'l':
+                    scope = 'letter'
                     grid.check_cell(cursor.position)
                 elif group.lower() == 'w':
                     scope = 'word'
