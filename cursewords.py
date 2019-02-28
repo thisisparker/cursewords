@@ -46,6 +46,9 @@ class Cell:
     def is_blank(self):
         return self.entry == "-"
 
+    def is_blankish(self):
+        return self.is_blank() or self.marked_wrong
+
     def is_correct(self):
         return self.entry == self.solution or self.is_block()
 
@@ -400,8 +403,7 @@ class Cursor:
 
         if not overwrite_mode:
             ordered_spaces = [pos for pos in ordered_spaces
-                    if self.grid.cells.get(pos).is_blank() or
-                       self.grid.cells.get(pos).marked_wrong]
+                    if self.grid.cells.get(pos).is_blankish()]
 
         return next(iter(ordered_spaces), None)
 
@@ -439,7 +441,7 @@ class Cursor:
         # If there are no blank squares left, override
         # the blank_placement setting
         if (blank_placement and
-                not any(self.grid.cells.get(pos).is_blank() for
+                not any(self.grid.cells.get(pos).is_blankish() for
                 pos in itertools.chain(*self.grid.across_words))):
             blank_placement = False
 
@@ -473,7 +475,7 @@ class Cursor:
         # If there are no blank squares left, override
         # the blank_placement setting
         if (blank_placement and
-                not any(self.grid.cells.get(pos).is_blank() for
+                not any(self.grid.cells.get(pos).is_blankish() for
                 pos in itertools.chain(*self.grid.across_words))):
             blank_placement = False
 
@@ -484,7 +486,7 @@ class Cursor:
 
     def earliest_blank_in_word(self):
         blanks = [pos for pos in self.current_word()
-                    if self.grid.cells.get(pos).is_blank()
+                    if self.grid.cells.get(pos).is_blankish()
                     or self.grid.cells.get(pos).marked_wrong]
         return next(iter(blanks), None)
 
@@ -851,7 +853,7 @@ def main():
                     grid.send_notification("Clear command canceled.")
 
             elif not puzzle_complete and keypress.isalnum():
-                if not current_cell.is_blank() and not current_cell.marked_wrong:
+                if not current_cell.is_blankish():
                     overwrite_mode = True
                 current_cell.entry = keypress.upper()
 
@@ -867,11 +869,10 @@ def main():
                 modified_since_save = True
                 cursor.retreat_within_word(end_placement=True)
 
-            elif (keypress.name in ['KEY_TAB'] and
-                    (current_cell.is_blank() or current_cell.marked_wrong)):
+            elif keypress.name in ['KEY_TAB'] and current_cell.is_blankish():
                 cursor.advance_to_next_word(blank_placement=True)
 
-            elif keypress.name in ['KEY_TAB'] and not current_cell.is_blank():
+            elif keypress.name in ['KEY_TAB'] and not current_cell.is_blankish():
                 cursor.advance_within_word(overwrite_mode=False)
 
             elif keypress.name in ['KEY_PGDOWN']:
