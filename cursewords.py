@@ -548,9 +548,9 @@ class Cursor:
         word = []
 
         if self.direction == "across":
-            word = [w for w in self.grid.across_words if pos in w][0]
+            word = next(iter([w for w in self.grid.across_words if pos in w]), [])
         if self.direction == "down":
-            word = [w for w in self.grid.down_words if pos in w][0]
+            word = next(iter([w for w in self.grid.down_words if pos in w]), [])
 
         return word
 
@@ -942,6 +942,8 @@ def main():
                         keypress.name in ['KEY_LEFT', 'KEY_RIGHT'])):
 
                 cursor.switch_direction()
+                if not cursor.current_word():
+                    cursor.switch_direction()
 
             elif ((cursor.direction == "across" and
                         keypress.name == 'KEY_RIGHT') or
