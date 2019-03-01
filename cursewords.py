@@ -595,7 +595,7 @@ class Timer(threading.Thread):
             time.sleep(0.2)
 
     def show_time(self):
-        y_coord = 2 # self.grid.grid_y + self.grid.row_count * 2 + 5
+        y_coord = 2
         x_coord = self.grid.grid_x + self.grid.column_count * 4 - 7
 
         print(self.grid.term.move(y_coord, x_coord)
