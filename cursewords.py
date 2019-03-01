@@ -146,8 +146,10 @@ class Grid:
 
         print(self.term.move(self.grid_y, self.grid_x)
                 + self.term.dim(top_row))
-        for index, y_val in enumerate(range(self.grid_y + 1,
-                                            self.grid_y + self.row_count * 2), 1):
+        for index, y_val in enumerate(
+                                range(self.grid_y + 1,
+                                      self.grid_y + self.row_count * 2),
+                                1):
             if index % 2 == 0:
                 print(self.term.move(y_val, self.grid_x) +
                         self.term.dim(divider_row))
@@ -227,7 +229,8 @@ class Grid:
             fill += entry
         self.puzfile.fill = fill
 
-        if any(self.cells.get(pos).marked_wrong or self.cells.get(pos).corrected
+        if any(self.cells.get(pos).marked_wrong or
+                self.cells.get(pos).corrected
                 for pos in self.cells):
             md = []
             for pos in self.cells:
@@ -477,7 +480,9 @@ class Cursor:
         elif blank_placement and not earliest_blank:
             self.advance_to_next_word(blank_placement)
 
-    def retreat_to_previous_word(self, end_placement=False, blank_placement=False):
+    def retreat_to_previous_word(self,
+                                 end_placement=False,
+                                 blank_placement=False):
         if self.direction == "across":
             word_group = self.grid.across_words
             next_words = self.grid.down_words_grouped
@@ -548,9 +553,9 @@ class Cursor:
         word = []
 
         if self.direction == "across":
-            word = next(iter([w for w in self.grid.across_words if pos in w]), [])
+            word = next((w for w in self.grid.across_words if pos in w), [])
         if self.direction == "down":
-            word = next(iter([w for w in self.grid.down_words if pos in w]), [])
+            word = next((w for w in self.grid.down_words if pos in w), [])
 
         return word
 
@@ -720,7 +725,8 @@ def main():
 
     clue_wrapper = textwrap.TextWrapper(
             width=clue_width,
-            max_lines=3)
+            max_lines=3,
+            subsequent_indent = '  ')
 
     start_pos = grid.across_words[0][0]
     cursor = Cursor(start_pos, "across", grid)
@@ -767,10 +773,15 @@ def main():
                 wrapped_clue += [''] * (3 - len(wrapped_clue))
                 wrapped_clue = [line + term.clear_eol for line in wrapped_clue]
 
-                for offset in range(0, 3):
-                    print(term.move(info_location['y'] + offset,
-                                    info_location['x'])
-                                    + wrapped_clue[offset], end='')
+                # This is fun: since we're in raw mode, \n isn't sufficient to
+                # return the printing location to the first column. If you 
+                # don't also have \r,
+                # it
+                #    prints
+                #           like
+                #                this after each newline
+                with term.location(**info_location):
+                    print('\r\n'.join(wrapped_clue))
 
             # Otherwise, just draw the old square now that it's not under
             # the cursor
@@ -815,10 +826,10 @@ def main():
                     timer.pause()
                     grid.draw()
 
-                    print(term.move(info_location['y'], info_location['x'])
-                            + 'PUZZLE PAUSED' + term.clear_eol
-                            + '\n' + term.clear_eol
-                            + '\n' + term.clear_eol)
+                    with term.location(**info_location):
+                        print('\r\n'.join(['PUZZLE PAUSED' + term.clear_eol,
+                                           term.clear_eol,
+                                           term.clear_eol]))
 
                     puzzle_paused = True
 
@@ -829,7 +840,7 @@ def main():
 
                     puzzle_paused = False
 
-            # If the puzzle is paused, skip all the rest of the logic in this loop!
+            # If the puzzle is paused, skip all the rest of the logic
             elif puzzle_paused:
                 continue
 
@@ -958,6 +969,16 @@ def main():
                         keypress.name == 'KEY_UP')):
 
                 cursor.retreat()
+
+            elif keypress in ['}', ']']:
+                cursor.switch_direction()
+                cursor.advance()
+                cursor.switch_direction()
+
+            elif keypress in ['{', '[']:
+                cursor.switch_direction()
+                cursor.retreat()
+                cursor.switch_direction()
 
     print(term.exit_fullscreen())
 
