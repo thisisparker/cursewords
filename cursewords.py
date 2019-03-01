@@ -1,6 +1,5 @@
 #! /usr/bin/env python3
 
-import collections
 import itertools
 import sys
 import time
@@ -63,7 +62,7 @@ class Grid:
 
     def load(self, puzfile):
         self.puzfile = puzfile
-        self.cells = collections.OrderedDict()
+        self.cells = {}
         self.row_count = puzfile.height
         self.column_count = puzfile.width
 
@@ -84,10 +83,12 @@ class Grid:
             for j in range(self.column_count):
                 if self.cells[(j, i)].is_letter():
                     current_word.append((j, i))
-                elif current_word:
+                elif len(current_word) > 1:
                     self.across_words.append(current_word)
                     current_word = []
-            if current_word:
+                elif current_word:
+                    current_word = []
+            if len(current_word) > 1:
                 self.across_words.append(current_word)
 
         self.down_words = []
@@ -96,10 +97,12 @@ class Grid:
             for i in range(self.row_count):
                 if self.cells[(j, i)].is_letter():
                     current_word.append((j, i))
-                elif current_word:
+                elif len(current_word) > 1:
                     self.down_words.append(current_word)
                     current_word = []
-            if current_word:
+                elif current_word:
+                    current_word = []
+            if len(current_word) > 1:
                 self.down_words.append(current_word)
 
         self.down_words_grouped = sorted(self.down_words,
@@ -155,14 +158,18 @@ class Grid:
         return None
 
     def number(self):
-        number = 1
-        for x, y in self.cells:
-            cell = self.cells[(x, y)]
-            if (not cell.is_block() and ((x == 0 or y == 0) or
-                                        (self.cells[(x-1, y)].is_block() or
-                                        self.cells[(x, y-1)].is_block()))):
-                cell.number = number
-                number += 1
+        numbered_squares = []
+        for word in self.across_words:
+            numbered_squares.append(word[0])
+
+        for word in self.down_words:
+            if word[0] not in numbered_squares:
+                numbered_squares.append(word[0])
+
+        numbered_squares.sort(key=lambda x: (x[1], x[0]))
+
+        for number, square in enumerate(numbered_squares, 1):
+            self.cells.get(square).number = number
 
         return None
 
@@ -486,8 +493,7 @@ class Cursor:
 
     def earliest_blank_in_word(self):
         blanks = [pos for pos in self.current_word()
-                    if self.grid.cells.get(pos).is_blankish()
-                    or self.grid.cells.get(pos).marked_wrong]
+                    if self.grid.cells.get(pos).is_blankish()]
         return next(iter(blanks), None)
 
     def move_right(self):
