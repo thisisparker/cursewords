@@ -25,6 +25,7 @@ class Cell:
 
         self.marked_wrong = False
         self.corrected = False
+        self.revealed = False
         self.circled = False
 
     def __str__(self):
@@ -121,6 +122,7 @@ class Grid:
                     cell.circled = True
                     md -= 128
                 if md >= 64:
+                    cell.revealed = True
                     md -= 64
                 if md >= 32:
                     cell.marked_wrong = True
@@ -235,6 +237,8 @@ class Grid:
                     cell_md += 16
                 if cell.marked_wrong:
                     cell_md += 32
+                if cell.revealed:
+                    cell_md += 64
                 if cell.circled:
                     cell_md += 128
                 md.append(cell_md)
@@ -244,6 +248,17 @@ class Grid:
         self.puzfile.save(filename)
 
         self.send_notification("Current puzzle state saved.")
+
+    def reveal_cell(self, pos):
+        cell = self.cells.get(pos)
+        if cell.is_blankish() or not cell.is_correct():
+            cell.entry = cell.solution
+            cell.revealed = True
+            self.draw_cell(pos)
+
+    def reveal_cells(self, pos_list):
+        for pos in pos_list:
+            self.reveal_cell(pos)
 
     def check_cell(self, pos):
         cell = self.cells.get(pos)
@@ -301,6 +316,8 @@ class Grid:
 
         if cell.corrected:
             markup = self.term.red(".")
+        if cell.revealed:
+            markup = self.term.red(":")
 
         return value, markup
 
@@ -690,6 +707,7 @@ def main():
                     ("^S", "save"),
                     ("^P", "pause"),
                     ("^C", "check"),
+                    ("^R", "reveal"),
                     ("^G", "go to"),
                     ("^X", "clear")]
         for shortcut, action in commands:
@@ -858,6 +876,31 @@ def main():
                 else:
                     grid.send_notification("Clear command canceled.")
 
+            # ctrl-r
+            elif keypress == chr(18):
+                group = grid.get_notification_input(
+                        "Reveal (l)etter, (w)ord, or (p)uzzle?",
+                        chars=1)
+                scope = ''
+                if group.lower() == 'l':
+                    scope = 'letter'
+                    grid.reveal_cell(cursor.position)
+                elif group.lower() == 'w':
+                    scope = 'word'
+                    grid.reveal_cells(cursor.current_word())
+                elif group.lower() == 'p':
+                    scope = 'puzzle'
+                    grid.reveal_cells(grid.cells)
+
+                if scope:
+                    grid.send_notification("Revealed answers for {scope}.".
+                            format(scope=scope))
+                else:
+                    grid.send_notification("No valid input entered.")
+
+                old_word = []
+
+            # Letter entry
             elif not puzzle_complete and keypress.isalnum():
                 if not current_cell.is_blankish():
                     overwrite_mode = True
@@ -869,12 +912,14 @@ def main():
                 modified_since_save = True
                 cursor.advance_within_word(overwrite_mode, wrap_mode=True)
 
+            # Delete key
             elif not puzzle_complete and keypress.name == 'KEY_DELETE':
                 current_cell.clear()
                 overwrite_mode = True
                 modified_since_save = True
                 cursor.retreat_within_word(end_placement=True)
 
+            # Navigation
             elif keypress.name in ['KEY_TAB'] and current_cell.is_blankish():
                 cursor.advance_to_next_word(blank_placement=True)
 
