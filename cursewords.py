@@ -680,10 +680,13 @@ def main():
             description="""A terminal-based crossword puzzle solving interface.""")
 
     parser.add_argument('filename', metavar='PUZfile',
-            help="""Path of puzzle file in the AcrossLite .puz format""")
+            help="""path of puzzle file in the AcrossLite .puz format""")
+    parser.add_argument('--downs-only', action='store_true',
+            help="""displays only the down clues""")
 
     args = parser.parse_args()
     filename = args.filename
+    downs_only = args.downs_only
 
     try:
         puzfile = puz.read(filename)
@@ -820,6 +823,8 @@ def main():
                     num_index = grid.across_words.index(
                             cursor.current_word())
                     clue = grid.across_clues[num_index]
+                    if downs_only:
+                        clue = "—"
                 elif cursor.direction == "down":
                     num_index = grid.down_words_grouped.index(
                             cursor.current_word())
