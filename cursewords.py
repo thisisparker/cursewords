@@ -617,7 +617,7 @@ class Timer(threading.Thread):
                                    + int(time.time() - self.start_time))
                 self.show_time()
 
-            time.sleep(0.2)
+            time.sleep(0.5)
 
     def show_time(self):
         y_coord = 2
@@ -633,9 +633,9 @@ class Timer(threading.Thread):
         h, m = divmod(m, 60)
 
         ch = '{h:02d}:' if h else '   '
-        compiled = '{ch}{m:02d}:{s:02d}'.format(ch=ch, m=m, s=s)
+        time_string = '{ch}{m:02d}:{s:02d}'.format(ch=ch, m=m, s=s)
 
-        return compiled
+        return time_string
 
     def save_format(self):
         time_amount = self.time_passed
@@ -817,9 +817,9 @@ def main():
                     clue = grid.down_clues[num_index]
 
                 num = str(grid.cells.get(cursor.current_word()[0]).number)
-                compiled = (num + " " + cursor.direction.upper()
+                compiled_clue = (num + " " + cursor.direction.upper()
                                 + ": " + clue)
-                wrapped_clue = clue_wrapper.wrap(compiled)
+                wrapped_clue = clue_wrapper.wrap(compiled_clue)
                 wrapped_clue += [''] * (3 - len(wrapped_clue))
                 wrapped_clue = [line + term.clear_eol for line in wrapped_clue]
 
@@ -830,8 +830,8 @@ def main():
                 #    prints
                 #           like
                 #                this after each newline
-                with term.location(**info_location):
-                    print('\r\n'.join(wrapped_clue))
+                print(term.move(info_location['y'], info_location['x'])
+                        + '\r\n'.join(wrapped_clue))
 
             # Otherwise, just draw the old square now that it's not under
             # the cursor
