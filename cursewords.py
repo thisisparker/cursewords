@@ -216,6 +216,15 @@ class Grid:
             confirmed = False
         return confirmed
 
+    def confirm_reset(self):
+        confirmation = self.get_notification_input("Reset puzzle? (y/n)",
+                                chars=1, blocking=True, timeout=5)
+        if confirmation.lower() == 'y':
+            confirmed = True
+        else:
+            confirmed = False
+        return confirmed
+
     def save(self, filename):
         fill = ''
         for pos in self.cells:
@@ -413,6 +422,16 @@ class Cursor:
         elif self.direction == "down":
             self.position = self.move_up()
 
+    def advance_perpendicular(self):
+        self.switch_direction()
+        self.advance()
+        self.switch_direction()
+
+    def retreat_perpendicular(self):
+        self.switch_direction()
+        self.retreat()
+        self.switch_direction()
+
     def advance_within_word(self, overwrite_mode=False, wrap_mode=False):
         within_pos = self.move_within_word(overwrite_mode, wrap_mode)
         if within_pos:
@@ -514,9 +533,9 @@ class Cursor:
             self.retreat_to_previous_word(end_placement, blank_placement)
 
     def earliest_blank_in_word(self):
-        blanks = [pos for pos in self.current_word()
-                    if self.grid.cells.get(pos).is_blankish()]
-        return next(iter(blanks), None)
+        blanks = (pos for pos in self.current_word()
+                    if self.grid.cells.get(pos).is_blankish())
+        return next(blanks, None)
 
     def move_right(self):
         spaces = list(itertools.chain(*self.grid.across_words))
@@ -563,8 +582,9 @@ class Cursor:
         num = self.grid.get_notification_input("Enter square number:",
                                                input_condition=str.isdigit)
         if num:
-            pos = next(iter([pos for pos in self.grid.cells
-                if self.grid.cells.get(pos).number == int(num)]), None)
+            pos = next((pos for pos in self.grid.cells
+                        if self.grid.cells.get(pos).number == int(num)),
+                        None)
             if pos:
                 self.position = pos
                 self.grid.send_notification(
@@ -669,8 +689,22 @@ def main():
     grid = Grid(grid_x, grid_y, term)
     grid.load(puzfile)
 
-    if ((term.width < grid_x + 4 * grid.column_count + 2) or
-            term.height < grid_y + 2 * grid.row_count + 6):
+    puzzle_width = 4 * grid.column_count
+    puzzle_height = 2 * grid.row_count
+
+    min_width = (puzzle_width
+                + grid_x
+                + 2) # a little breathing room
+
+    min_height = (puzzle_height
+                 + grid_y # includes the top bar + timer
+                 + 2 # padding above clues
+                 + 3 # clue area
+                 + 2 # toolbar
+                 + 2) # again, just some breathing room
+
+
+    if (term.width < min_width or term.height < min_height):
         exit_text = textwrap.dedent("""\
         This puzzle is {} columns wide and {} rows tall.
         The current terminal window is too small to
@@ -706,21 +740,37 @@ def main():
     with term.location(x=0, y=0):
         print(term.dim(term.reverse(headline)))
 
-    with term.location(x=grid_x, y=term.height):
-        toolbar = ''
-        commands = [("^Q", "quit"),
-                    ("^S", "save"),
-                    ("^P", "pause"),
-                    ("^C", "check"),
-                    ("^R", "reveal"),
-                    ("^G", "go to"),
-                    ("^X", "clear")]
+    toolbar = ''
+    commands = [("^Q", "quit"),
+                ("^S", "save"),
+                ("^P", "pause"),
+                ("^C", "check"),
+                ("^R", "reveal"),
+                ("^G", "go to"),
+                ("^X", "clear"),
+                ("^Z", "reset"),]
+
+    if term.width >= 15 * len(commands):
         for shortcut, action in commands:
             shortcut = term.reverse(shortcut)
             toolbar += "{:<25}".format(' '.join([shortcut, action]))
-        print(toolbar, end='')
 
-    clue_width = min(int(1.5 * (4 * grid.column_count + 2) - grid_x),
+        with term.location(x=grid_x, y=term.height):
+            print(toolbar, end='')
+    else:
+        grid.notification_area = (grid.notification_area[0] - 1, grid_x)
+        command_split = int(len(commands)/2) - 1
+        for idx, (shortcut, action) in enumerate(commands):
+            shortcut = term.reverse(shortcut)
+            toolbar += "{:<25}".format(' '.join([shortcut, action]))
+
+            if idx == command_split:
+                toolbar += '\n' + grid_x * ' '
+
+        with term.location(x=grid_x, y=term.height - 2):
+            print(toolbar, end='')
+
+    clue_width = min(int(1.3 * (puzzle_width) - grid_x),
                      term.width - 2 - grid_x)
 
     clue_wrapper = textwrap.TextWrapper(
@@ -794,13 +844,16 @@ def main():
 
             # Check if the puzzle is complete!
             if not puzzle_complete and all(grid.cells.get(pos).is_correct()
-                    for pos in itertools.chain(*grid.across_words)):
+                    for pos in grid.cells):
                 puzzle_complete = True
                 with term.location(x=grid_x, y=2):
                     print(term.reverse("You've completed the puzzle!"),
                             term.clear_eol)
                 timer.show_time()
                 timer.active = False
+
+            blank_cells_remaining = any(grid.cells.get(pos).is_blankish()
+                                        for pos in grid.cells)
 
             # Where the magic happens: get key input
             keypress = term.inkey()
@@ -839,6 +892,26 @@ def main():
                     old_word = []
 
                     puzzle_paused = False
+
+            # ctrl-z
+            elif keypress == chr(26):
+                confirm = grid.confirm_reset()
+                if confirm:
+                    grid.send_notification("Puzzle reset.")
+                    for pos in grid.cells:
+                        cell = grid.cells.get(pos)
+                        if cell.is_letter():
+                            cell.clear()
+                            grid.draw_cell(pos)
+                            cell.corrected = False
+                    timer.starting_seconds = timer.time_passed = 0
+                    timer.start_time = time.time()
+                    timer.show_time()
+                    modified_since_save = True
+                    if not puzzle_paused:
+                        old_word = []
+                else:
+                    grid.send_notification("Reset command canceled.")
 
             # If the puzzle is paused, skip all the rest of the logic
             elif puzzle_paused:
@@ -880,12 +953,13 @@ def main():
                     for pos in grid.cells:
                         cell = grid.cells.get(pos)
                         if cell.is_letter():
-                            grid.cells.get(pos).clear()
+                            cell.clear()
                             grid.draw_cell(pos)
                     old_word = []
                     modified_since_save = True
                 else:
                     grid.send_notification("Clear command canceled.")
+
 
             # ctrl-r
             elif keypress == chr(18):
@@ -971,14 +1045,16 @@ def main():
                 cursor.retreat()
 
             elif keypress in ['}', ']']:
-                cursor.switch_direction()
-                cursor.advance()
-                cursor.switch_direction()
+                cursor.advance_perpendicular()
+                if (keypress == '}' and blank_cells_remaining):
+                    while not grid.cells.get(cursor.position).is_blankish():
+                        cursor.advance_perpendicular()
 
             elif keypress in ['{', '[']:
-                cursor.switch_direction()
-                cursor.retreat()
-                cursor.switch_direction()
+                cursor.retreat_perpendicular()
+                if (keypress == '{' and blank_cells_remaining):
+                    while not grid.cells.get(cursor.position).is_blankish():
+                        cursor.retreat_perpendicular()
 
     print(term.exit_fullscreen())
 
