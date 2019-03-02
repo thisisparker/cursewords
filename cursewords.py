@@ -1,5 +1,6 @@
 #! /usr/bin/env python3
 
+import argparse
 import itertools
 import sys
 import time
@@ -675,7 +676,15 @@ def encircle(letter):
 
 
 def main():
-    filename = sys.argv[1]
+    parser = argparse.ArgumentParser(
+            description="""A terminal-based crossword puzzle solving interface.""")
+
+    parser.add_argument('filename', metavar='PUZfile',
+            help="""Path of puzzle file in the AcrossLite .puz format""")
+
+    args = parser.parse_args()
+    filename = args.filename
+
     try:
         puzfile = puz.read(filename)
     except:
@@ -776,7 +785,7 @@ def main():
     clue_wrapper = textwrap.TextWrapper(
             width=clue_width,
             max_lines=3,
-            subsequent_indent = '  ')
+            subsequent_indent=grid_x * ' ')
 
     start_pos = grid.across_words[0][0]
     cursor = Cursor(start_pos, "across", grid)
