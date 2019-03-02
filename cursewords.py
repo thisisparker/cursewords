@@ -325,7 +325,7 @@ class Grid:
         else:
             value = self.term.bold(value)
 
-        markup = ''
+        markup = ' '
 
         if cell.corrected:
             markup = self.term.red(".")
@@ -916,8 +916,9 @@ def main():
                         cell = grid.cells.get(pos)
                         if cell.is_letter():
                             cell.clear()
-                            grid.draw_cell(pos)
                             cell.corrected = False
+                            cell.revealed = False
+                            grid.draw_cell(pos)
                     timer.starting_seconds = timer.time_passed = 0
                     timer.start_time = time.time()
                     timer.show_time()
