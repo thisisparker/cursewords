@@ -12,7 +12,7 @@ import puz
 
 from blessed import Terminal
 
-from .characters import *
+from . import chars
 
 
 class Cell:
@@ -187,7 +187,7 @@ class Grid:
                 self.draw_cell(position)
             elif cell.is_block():
                 print(self.term.move(y_coord, x_coord - 1) +
-                        self.term.dim(squareblock))
+                        self.term.dim(chars.squareblock))
 
             if cell.number:
                 small = small_nums(cell.number)
@@ -301,16 +301,16 @@ class Grid:
         return row
 
     def get_top_row(self):
-        return self.make_row(ulcorner, hline, ttee, urcorner)
+        return self.make_row(chars.ulcorner, chars.hline, chars.ttee, chars.urcorner)
 
     def get_bottom_row(self):
-        return self.make_row(llcorner, hline, btee, lrcorner)
+        return self.make_row(chars.llcorner, chars.hline, chars.btee, chars.lrcorner)
 
     def get_middle_row(self):
-        return self.make_row(vline, " ", vline, vline)
+        return self.make_row(chars.vline, " ", chars.vline, chars.vline)
 
     def get_divider_row(self):
-        return self.make_row(ltee, hline, bigplus, rtee)
+        return self.make_row(chars.ltee, chars.hline, chars.bigplus, chars.rtee)
 
     def compile_cell(self, position):
         cell = self.cells.get(position)
