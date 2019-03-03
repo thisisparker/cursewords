@@ -37,5 +37,6 @@ setup(
         'console_scripts': [
             'cursewords=cursewords:main',
         ],
+    keywords='puz crossword crosswords xword xwords puzzle acrosslite'
     },
 )
