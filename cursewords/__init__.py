@@ -1,1 +1,1 @@
-from cursewords import *
+from .cursewords import *

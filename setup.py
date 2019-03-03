@@ -35,7 +35,7 @@ setup(
     },
     entry_points={
         'console_scripts': [
-            'cursewords=cursewords.cursewords:main',
+            'cursewords=cursewords:main',
         ],
     },
 )
