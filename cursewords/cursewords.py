@@ -2,6 +2,7 @@
 
 import argparse
 import itertools
+import os
 import sys
 import time
 import textwrap
@@ -11,7 +12,7 @@ import puz
 
 from blessed import Terminal
 
-from characters import *
+from .characters import *
 
 
 class Cell:
@@ -239,9 +240,10 @@ class Grid:
             fill += entry
         self.puzfile.fill = fill
 
-        if any(self.cells.get(pos).marked_wrong or
+        if (any(self.cells.get(pos).marked_wrong or
                 self.cells.get(pos).corrected
-                for pos in self.cells):
+                for pos in self.cells) or
+                self.puzfile.has_markup()):
             md = []
             for pos in self.cells:
                 cell = self.cells[pos]
@@ -676,6 +678,11 @@ def encircle(letter):
 
 
 def main():
+    version_dir = os.path.abspath(os.path.dirname((__file__)))
+    version_file = os.path.join(version_dir, 'version')
+    with open(version_file) as f:
+        version = f.read().strip()
+
     parser = argparse.ArgumentParser(
             description="""A terminal-based crossword puzzle solving interface.""")
 
@@ -683,6 +690,7 @@ def main():
             help="""path of puzzle file in the AcrossLite .puz format""")
     parser.add_argument('--downs-only', action='store_true',
             help="""displays only the down clues""")
+    parser.add_argument('--version', action='version', version=version)
 
     args = parser.parse_args()
     filename = args.filename
@@ -737,7 +745,7 @@ def main():
     grid.number()
     grid.fill()
 
-    software_info = 'cursewords vX.X'
+    software_info = 'cursewords v{}'.format(version)
     puzzle_info = '{grid.title} - {grid.author}'.format(grid=grid)
     padding = 2
     sw_width = len(software_info) + 5
