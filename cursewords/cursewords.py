@@ -684,6 +684,7 @@ def main():
         version = f.read().strip()
 
     parser = argparse.ArgumentParser(
+            prog='cursewords',
             description="""A terminal-based crossword puzzle solving interface.""")
 
     parser.add_argument('filename', metavar='PUZfile',
