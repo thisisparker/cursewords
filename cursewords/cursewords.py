@@ -723,13 +723,19 @@ def main():
                  + 2 # toolbar
                  + 2) # again, just some breathing room
 
+    necessary_resize = []
+    if term.width < min_width:
+        necessary_resize.append("wider")
+    if term.height < min_height:
+        necessary_resize.append("taller")
 
-    if (term.width < min_width or term.height < min_height):
+    if necessary_resize:
         exit_text = textwrap.dedent("""\
         This puzzle is {} columns wide and {} rows tall.
-        The current terminal window is too small to
-        properly display it.""".format(
-            grid.column_count, grid.row_count))
+        The terminal window must be {} to properly display 
+        it.""".format(
+            grid.column_count, grid.row_count,
+            ' and '.join(necessary_resize)))
         sys.exit(' '.join(exit_text.splitlines()))
 
     if grid.puzfile.has_rebus():
