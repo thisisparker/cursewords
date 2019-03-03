@@ -635,7 +635,7 @@ class Timer(threading.Thread):
         m, s = divmod(time_amount, 60)
         h, m = divmod(m, 60)
 
-        ch = '{h:02d}:' if h else '   '
+        ch = '{h:02d}:'.format(h=h) if h else '   '
         time_string = '{ch}{m:02d}:{s:02d}'.format(ch=ch, m=m, s=s)
 
         return time_string
