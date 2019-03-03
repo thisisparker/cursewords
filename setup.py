@@ -6,6 +6,9 @@ here = path.abspath(path.dirname(__file__))
 with open(path.join(here, 'requirements.txt')) as f:
     reqs = f.read().split()
 
+with open(path.join(here, 'requirements.dev.txt')) as f:
+    test_reqs = f.read().split()
+
 with open(path.join(here, 'README.md')) as f:
     readme = f.read()
 
@@ -30,6 +33,7 @@ setup(
     packages=find_packages(),
     python_requires='>=3.4',
     install_requires=reqs,
+    tests_require=test_reqs,
     package_data={
         'cursewords': ['version']
     },
