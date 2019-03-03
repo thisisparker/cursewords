@@ -15,20 +15,22 @@ It is currently under active development, and should not be considered fully "re
 
 ## Installation
 
-To install `cursewords`, make sure you have `python3.6` or similar. (I haven't extensively tested, but it should likely work with `3.4` and higher.) Clone this repo and change into the new directory, and then use pip to install the dependencies:
+`cursewords` is only compatible with `python3`, and can be installed through `pip`. If you don't know what that means, the best command is probably:
 
 ```bash
-pip3 install -r requirements.txt
+pip3 install --user cursewords
 ```
 
-You should then be ready to go. For now, use `cursewords` to open `.puz` files directly:
+You should then be ready to go. You can then use  `cursewords` to open `.puz` files directly:
 
 ```
-./cursewords.py todaysnyt.puz
+cursewords todaysnyt.puz
 ```
 
 ## Usage
 
-If you've used a program to solve crossword puzzles, navigation should be pretty intuitive. `tab` and `shift+tab` are the workhorses for navigation between blanks. `page up` and `page down` (on Mac, `Fn+` arrow keys) jump between words without considering blank spaces. `ctrl+g`, followed by a number, will jump directly to the space with that number.
+If you've used a program to solve crossword puzzles, navigation should be pretty intuitive. `tab` and `shift+tab` are the workhorses for navigation between blanks. `page up` and `page down` (on Mac, `Fn+` up/down arrow keys) jump between words without considering blank spaces. `ctrl+g`, followed by a number, will jump directly to the space with that number.
 
-If you need some help, `ctrl+c` will check the current square, word, or entire puzzle for errors.
+If you need some help, `ctrl+c` will check the current square, word, or entire puzzle for errors, and `ctrl+r` will reveal answers (subject to the same scoping options). To clear all entries on the puzzle, use `ctrl+x`, and to reset the puzzle to its original state (resetting the timer and removing any stored information about hints and corrections, use `ctrl+z`.
+
+To open a puzzle in `downs-only` mode, where only the down clues are visible, use the `--downs-only` flag when opening the file on the command line.
