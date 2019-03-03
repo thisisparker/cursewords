@@ -12,7 +12,7 @@ import puz
 
 from blessed import Terminal
 
-from .characters import *
+from . import chars
 
 
 class Cell:
@@ -187,7 +187,7 @@ class Grid:
                 self.draw_cell(position)
             elif cell.is_block():
                 print(self.term.move(y_coord, x_coord - 1) +
-                        self.term.dim(squareblock))
+                        self.term.dim(chars.squareblock))
 
             if cell.number:
                 small = small_nums(cell.number)
@@ -301,16 +301,16 @@ class Grid:
         return row
 
     def get_top_row(self):
-        return self.make_row(ulcorner, hline, ttee, urcorner)
+        return self.make_row(chars.ulcorner, chars.hline, chars.ttee, chars.urcorner)
 
     def get_bottom_row(self):
-        return self.make_row(llcorner, hline, btee, lrcorner)
+        return self.make_row(chars.llcorner, chars.hline, chars.btee, chars.lrcorner)
 
     def get_middle_row(self):
-        return self.make_row(vline, " ", vline, vline)
+        return self.make_row(chars.vline, " ", chars.vline, chars.vline)
 
     def get_divider_row(self):
-        return self.make_row(ltee, hline, bigplus, rtee)
+        return self.make_row(chars.ltee, chars.hline, chars.bigplus, chars.rtee)
 
     def compile_cell(self, position):
         cell = self.cells.get(position)
@@ -723,13 +723,19 @@ def main():
                  + 2 # toolbar
                  + 2) # again, just some breathing room
 
+    necessary_resize = []
+    if term.width < min_width:
+        necessary_resize.append("wider")
+    if term.height < min_height:
+        necessary_resize.append("taller")
 
-    if (term.width < min_width or term.height < min_height):
+    if necessary_resize:
         exit_text = textwrap.dedent("""\
         This puzzle is {} columns wide and {} rows tall.
-        The current terminal window is too small to
-        properly display it.""".format(
-            grid.column_count, grid.row_count))
+        The terminal window must be {} to properly display 
+        it.""".format(
+            grid.column_count, grid.row_count,
+            ' and '.join(necessary_resize)))
         sys.exit(' '.join(exit_text.splitlines()))
 
     if grid.puzfile.has_rebus():
