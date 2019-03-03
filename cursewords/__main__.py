@@ -1,0 +1,3 @@
+import cursewords
+
+cursewords.main()
