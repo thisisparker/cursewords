@@ -5,7 +5,6 @@ This modules builds us an interactive crossword puzle we can curse at
 """
 
 # pylint: disable=
-# pylint: disable=attribute-defined-outside-init
 # pylint: disable=bad-continuation
 # pylint: disable=bare-except
 # pylint: disable=simplifiable-if-statement
@@ -88,7 +87,22 @@ class Grid:
         self.grid_x = grid_x
         self.grid_y = grid_y
         self.term = term
+        self.puzfile = None
+        self.cells = {}
+        self.row_count = 0
+        self.column_count = 0
+        self.title = ''
+        self.author = ''
 
+        self.across_words = []
+        self.down_words = []
+        self.down_words_grouped = []
+        self.across_clues = []
+        self.down_clues = []
+
+        self.start_time = 0
+        self.timer_active = False
+        self.notification_timer = None
         self.notification_area = (term.height-2, self.grid_x)
 
     def load(self, puzfile):
@@ -670,6 +684,8 @@ class Timer(threading.Thread):
         self.starting_seconds = starting_seconds
         self.is_running = is_running
         self.active = active
+        self.time_passed = 0
+        self.start_time = 0
 
         super().__init__(daemon=True)
 
