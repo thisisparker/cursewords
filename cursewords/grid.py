@@ -130,10 +130,6 @@ class Grid:
         self.y = grid_y # pylint: disable=invalid-name
         self.puzfile = None
         self.cells = {}
-        self.row_count = 0
-        self.column_count = 0
-        self.title = ''
-        self.author = ''
 
         self.across_words = []
         self.down_words = []
@@ -150,15 +146,30 @@ class Grid:
         return sorted(self.down_words,
                       key=lambda word: (word[0][1], word[0][0]))
 
+    @property
+    def title(self):
+        """ our puzzle's title """
+        return self.puzfile.title
+
+    @property
+    def author(self):
+        """ our puzzle's author """
+        return self.puzfile.author
+
+    @property
+    def row_count(self):
+        """ how many rows are in the puzzle """
+        return self.puzfile.height
+
+    @property
+    def column_count(self):
+        """ how many columns in the puzzle """
+        return self.puzfile.width
+
     def load(self, puzfile):
         """" load our grid from a file """
         self.puzfile = puzfile
         self.cells = {}
-        self.row_count = puzfile.height
-        self.column_count = puzfile.width
-
-        self.title = puzfile.title
-        self.author = puzfile.author
 
         for i in range(self.row_count):
             for j in range(self.column_count):
