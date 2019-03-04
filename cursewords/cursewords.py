@@ -19,7 +19,6 @@ This modules builds us an interactive crossword puzle we can curse at
 # pylint: disable=too-many-locals
 # pylint: disable=too-many-public-methods
 # pylint: disable=too-many-statements
-# pylint: disable=unused-variable
 # pylint: disable=useless-return
 # pylint: disable=
 
@@ -954,7 +953,6 @@ def main():
                 grid.draw_highlighted_cell(old_position)
 
             current_cell = grid.cells.get(cursor.position)
-            value = current_cell.entry
             grid.draw_cursor_cell(cursor.position)
 
             # Check if the puzzle is complete!
