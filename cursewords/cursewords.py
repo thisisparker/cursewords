@@ -9,7 +9,6 @@ This modules builds us an interactive crossword puzle we can curse at
 # pylint: disable=bad-continuation
 # pylint: disable=bare-except
 # pylint: disable=invalid-name
-# pylint: disable=redefined-outer-name
 # pylint: disable=simplifiable-if-statement
 # pylint: disable=too-many-arguments
 # pylint: disable=too-many-boolean-expressions
@@ -228,7 +227,7 @@ class Grid:
         if modified_since_save:
             confirmation = self.get_notification_input(
                                 "Quit without saving? (y/n)",
-                                chars=1, blocking=True, timeout=5)
+                                limit=1, blocking=True, timeout=5)
             if confirmation.lower() == 'y':
                 confirmed = True
             else:
@@ -239,7 +238,7 @@ class Grid:
     def confirm_clear(self):
         """ confirm that the user wants to curse at the blank puzzle again """
         confirmation = self.get_notification_input("Clear puzzle? (y/n)",
-                                chars=1, blocking=True, timeout=5)
+                                limit=1, blocking=True, timeout=5)
         if confirmation.lower() == 'y':
             confirmed = True
         else:
@@ -249,7 +248,7 @@ class Grid:
     def confirm_reset(self):
         """ confirm that the user wants to reset this cursed puzzle """
         confirmation = self.get_notification_input("Reset puzzle? (y/n)",
-                                chars=1, blocking=True, timeout=5)
+                                limit=1, blocking=True, timeout=5)
         if confirmation.lower() == 'y':
             confirmed = True
         else:
@@ -396,7 +395,7 @@ class Grid:
         value = self.term.reverse(value) + markup
         print(self.term.move(*self.to_term(position)) + value)
 
-    def get_notification_input(self, message, timeout=5, chars=3,
+    def get_notification_input(self, message, timeout=5, limit=3,
             input_condition=str.isalnum, blocking=False):
         """ get input from our notification system """
 
@@ -414,7 +413,7 @@ class Grid:
 
         user_input = ''
         keypress = None
-        while keypress != '' and len(user_input) < chars:
+        while keypress != '' and len(user_input) < limit:
             keypress = self.term.inkey(timeout)
             if input_condition(keypress):
                 user_input += keypress
@@ -1026,7 +1025,7 @@ def main():
             elif keypress == chr(3):
                 group = grid.get_notification_input(
                         "Check (l)etter, (w)ord, or (p)uzzle?",
-                        chars=1)
+                        limit=1)
                 scope = ''
                 if group.lower() == 'l':
                     scope = 'letter'
@@ -1070,7 +1069,7 @@ def main():
             elif keypress == chr(18):
                 group = grid.get_notification_input(
                         "Reveal (l)etter, (w)ord, or (p)uzzle?",
-                        chars=1)
+                        limit=1)
                 scope = ''
                 if group.lower() == 'l':
                     scope = 'letter'
