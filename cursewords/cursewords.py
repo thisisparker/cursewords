@@ -1,5 +1,28 @@
 #! /usr/bin/env python3
 
+"""
+This modules builds us an interactive crossword puzle we can curse at
+"""
+
+# pylint: disable=attribute-defined-outside-init
+# pylint: disable=bad-continuation
+# pylint: disable=bare-except
+# pylint: disable=invalid-name
+# pylint: disable=missing-docstring
+# pylint: disable=redefined-outer-name
+# pylint: disable=simplifiable-if-statement
+# pylint: disable=too-many-arguments
+# pylint: disable=too-many-boolean-expressions
+# pylint: disable=too-many-branches
+# pylint: disable=too-many-instance-attributes
+# pylint: disable=too-many-lines
+# pylint: disable=too-many-locals
+# pylint: disable=too-many-public-methods
+# pylint: disable=too-many-statements
+# pylint: disable=unused-variable
+# pylint: disable=useless-return
+# pylint: disable=
+
 import argparse
 import itertools
 import os
