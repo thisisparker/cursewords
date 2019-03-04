@@ -7,7 +7,6 @@ This modules builds us an interactive crossword puzle we can curse at
 # pylint: disable=
 # pylint: disable=bad-continuation
 # pylint: disable=bare-except
-# pylint: disable=simplifiable-if-statement
 # pylint: disable=too-many-arguments
 # pylint: disable=too-many-boolean-expressions
 # pylint: disable=too-many-branches
@@ -242,10 +241,7 @@ class Grid:
             confirmation = self.get_notification_input(
                                 "Quit without saving? (y/n)",
                                 limit=1, blocking=True, timeout=5)
-            if confirmation.lower() == 'y':
-                confirmed = True
-            else:
-                confirmed = False
+            confirmed = bool(confirmation.lower() == 'y')
 
         return confirmed
 
@@ -253,20 +249,14 @@ class Grid:
         """ confirm that the user wants to curse at the blank puzzle again """
         confirmation = self.get_notification_input("Clear puzzle? (y/n)",
                                 limit=1, blocking=True, timeout=5)
-        if confirmation.lower() == 'y':
-            confirmed = True
-        else:
-            confirmed = False
+        confirmed = bool(confirmation.lower() == 'y')
         return confirmed
 
     def confirm_reset(self):
         """ confirm that the user wants to reset this cursed puzzle """
         confirmation = self.get_notification_input("Reset puzzle? (y/n)",
                                 limit=1, blocking=True, timeout=5)
-        if confirmation.lower() == 'y':
-            confirmed = True
-        else:
-            confirmed = False
+        confirmed = bool(confirmation.lower() == 'y')
         return confirmed
 
     def save(self, filename):
