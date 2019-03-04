@@ -8,7 +8,6 @@ This modules builds us an interactive crossword puzle we can curse at
 # pylint: disable=attribute-defined-outside-init
 # pylint: disable=bad-continuation
 # pylint: disable=bare-except
-# pylint: disable=invalid-name
 # pylint: disable=simplifiable-if-statement
 # pylint: disable=too-many-arguments
 # pylint: disable=too-many-boolean-expressions
@@ -148,6 +147,7 @@ class Grid:
         if self.puzfile.has_markup():
             markup = self.puzfile.markup().markup
 
+            # pylint: disable=invalid-name
             for md, pos in zip(markup, self.cells):
                 cell = self.cells.get(pos)
                 if md >= 128:
@@ -273,7 +273,7 @@ class Grid:
                 self.cells.get(pos).corrected
                 for pos in self.cells) or
                 self.puzfile.has_markup()):
-            md = []
+            metadata = []
             for pos in self.cells:
                 cell = self.cells[pos]
                 cell_md = 0
@@ -285,9 +285,9 @@ class Grid:
                     cell_md += 64
                 if cell.circled:
                     cell_md += 128
-                md.append(cell_md)
+                metadata.append(cell_md)
 
-            self.puzfile.markup().markup = md
+            self.puzfile.markup().markup = metadata
 
         self.puzfile.save(filename)
 
@@ -454,6 +454,7 @@ class Cursor:
         self.grid = grid
 
     def switch_direction(self, to=None):
+        # pylint: disable=invalid-name
         """ switch from down to across or vice-versa """
         if to:
             self.direction = to
@@ -699,6 +700,7 @@ class Timer(threading.Thread):
 
     def display_format(self):
         """ build our time format for display """
+        # pylint: disable=invalid-name
         time_amount = self.time_passed
 
         m, s = divmod(time_amount, 60)
@@ -755,8 +757,8 @@ def main():
     """ This is our main loop """
     version_dir = os.path.abspath(os.path.dirname((__file__)))
     version_file = os.path.join(version_dir, 'version')
-    with open(version_file) as f:
-        version = f.read().strip()
+    with open(version_file) as file:
+        version = file.read().strip()
 
     parser = argparse.ArgumentParser(
             prog='cursewords',
