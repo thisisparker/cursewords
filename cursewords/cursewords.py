@@ -57,25 +57,30 @@ class Cell:
             self.marked_wrong = False
             self.corrected = True
 
+    @property
     def is_block(self):
         """ test if this cell is a block """
         return self.solution == "."
 
+    @property
     def is_letter(self):
         """ test if this cell is a letter """
         return self.solution.isalnum()
 
+    @property
     def is_blank(self):
         """ test if this cell is blank """
         return self.entry == "-"
 
+    @property
     def is_blankish(self):
         """ test if we should treat this cell as blank """
-        return self.is_blank() or self.marked_wrong
+        return self.is_blank or self.marked_wrong
 
+    @property
     def is_correct(self):
         """ test if this cell is filled in correctly """
-        return self.entry == self.solution or self.is_block()
+        return self.entry == self.solution or self.is_block
 
 
 class Grid:
@@ -128,7 +133,7 @@ class Grid:
         for i in range(self.row_count):
             current_word = []
             for j in range(self.column_count):
-                if self.cells[(j, i)].is_letter():
+                if self.cells[(j, i)].is_letter:
                     current_word.append((j, i))
                 elif len(current_word) > 1:
                     self.across_words.append(current_word)
@@ -142,7 +147,7 @@ class Grid:
         for j in range(self.column_count):
             current_word = []
             for i in range(self.row_count):
-                if self.cells[(j, i)].is_letter():
+                if self.cells[(j, i)].is_letter:
                     current_word.append((j, i))
                 elif len(current_word) > 1:
                     self.down_words.append(current_word)
@@ -220,9 +225,9 @@ class Grid:
         for position in self.cells:
             y_coord, x_coord = self.to_term(position)
             cell = self.cells[position]
-            if cell.is_letter():
+            if cell.is_letter:
                 self.draw_cell(position)
-            elif cell.is_block():
+            elif cell.is_block:
                 print(self.term.move(y_coord, x_coord - 1) +
                       self.term.dim(chars.squareblock))
 
@@ -261,9 +266,9 @@ class Grid:
         fill = ''
         for pos in self.cells:
             cell = self.cells[pos]
-            if cell.is_block():
+            if cell.is_block:
                 entry = "."
-            elif cell.is_blank():
+            elif cell.is_blank:
                 entry = "-"
             else:
                 entry = cell.entry
@@ -297,7 +302,7 @@ class Grid:
     def reveal_cell(self, pos):
         """ reveal one cursed cell """
         cell = self.cells.get(pos)
-        if cell.is_blankish() or not cell.is_correct():
+        if cell.is_blankish or not cell.is_correct:
             cell.entry = cell.solution
             cell.revealed = True
             self.draw_cell(pos)
@@ -310,7 +315,7 @@ class Grid:
     def check_cell(self, pos):
         """ check one cursed cell """
         cell = self.cells.get(pos)
-        if not cell.is_blank() and not cell.is_correct():
+        if not cell.is_blank and not cell.is_correct:
             cell.marked_wrong = True
             self.draw_cell(pos)
 
@@ -356,7 +361,7 @@ class Grid:
     def compile_cell(self, position):
         """" compile the various attributes of one cell """
         cell = self.cells.get(position)
-        if cell.is_blank():
+        if cell.is_blank:
             value = " "
         else:
             value = cell.entry
@@ -511,7 +516,7 @@ class Cursor:
 
         if not overwrite_mode:
             ordered_spaces = [pos for pos in ordered_spaces
-                              if self.grid.cells.get(pos).is_blankish()]
+                              if self.grid.cells.get(pos).is_blankish]
 
         return next(iter(ordered_spaces), None)
 
@@ -551,8 +556,8 @@ class Cursor:
         # If there are no blank squares left, override
         # the blank_placement setting
         if blank_placement and \
-            not any(self.grid.cells.get(pos).is_blankish()
-                    for pos in itertools.chain(*self.grid.across_words)):
+           not any(self.grid.cells.get(pos).is_blankish for
+                   pos in itertools.chain(*self.grid.across_words)):
             blank_placement = False
 
         # Otherwise, if blank_placement is on, put the
@@ -588,7 +593,7 @@ class Cursor:
         # If there are no blank squares left, override
         # the blank_placement setting
         if blank_placement and \
-           not any(self.grid.cells.get(pos).is_blankish() for
+           not any(self.grid.cells.get(pos).is_blankish for
                    pos in itertools.chain(*self.grid.across_words)):
             blank_placement = False
 
@@ -600,7 +605,7 @@ class Cursor:
     def earliest_blank_in_word(self):
         """ find the earliest blank in a word """
         blanks = (pos for pos in self.current_word()
-                  if self.grid.cells.get(pos).is_blankish())
+                  if self.grid.cells.get(pos).is_blankish)
         return next(blanks, None)
 
     def move_right(self):
@@ -948,7 +953,7 @@ def main():
             grid.draw_cursor_cell(cursor.position)
 
             # Check if the puzzle is complete!
-            if not puzzle_complete and all(grid.cells.get(pos).is_correct()
+            if not puzzle_complete and all(grid.cells.get(pos).is_correct
                                            for pos in grid.cells):
                 puzzle_complete = True
                 with term.location(x=grid_x, y=2):
@@ -957,7 +962,7 @@ def main():
                 timer.show_time()
                 timer.active = False
 
-            blank_cells_remaining = any(grid.cells.get(pos).is_blankish()
+            blank_cells_remaining = any(grid.cells.get(pos).is_blankish
                                         for pos in grid.cells)
 
             # Where the magic happens: get key input
@@ -1005,7 +1010,7 @@ def main():
                     grid.send_notification("Puzzle reset.")
                     for pos in grid.cells:
                         cell = grid.cells.get(pos)
-                        if cell.is_letter():
+                        if cell.is_letter:
                             cell.clear()
                             cell.corrected = False
                             cell.revealed = False
@@ -1057,7 +1062,7 @@ def main():
                     grid.send_notification("Puzzle cleared.")
                     for pos in grid.cells:
                         cell = grid.cells.get(pos)
-                        if cell.is_letter():
+                        if cell.is_letter:
                             cell.clear()
                             grid.draw_cell(pos)
                     old_word = []
@@ -1091,7 +1096,7 @@ def main():
 
             # Letter entry
             elif not puzzle_complete and keypress.isalnum():
-                if not current_cell.is_blankish():
+                if not current_cell.is_blankish:
                     overwrite_mode = True
                 current_cell.entry = keypress.upper()
 
@@ -1109,10 +1114,10 @@ def main():
                 cursor.retreat_within_word(end_placement=True)
 
             # Navigation
-            elif keypress.name in ['KEY_TAB'] and current_cell.is_blankish():
+            elif keypress.name in ['KEY_TAB'] and current_cell.is_blankish:
                 cursor.advance_to_next_word(blank_placement=True)
 
-            elif keypress.name in ['KEY_TAB'] and not current_cell.is_blankish():
+            elif keypress.name in ['KEY_TAB'] and not current_cell.is_blankish:
                 cursor.advance_within_word(overwrite_mode=False)
 
             elif keypress.name in ['KEY_PGDOWN']:
@@ -1151,13 +1156,13 @@ def main():
             elif keypress in ['}', ']']:
                 cursor.advance_perpendicular()
                 if (keypress == '}' and blank_cells_remaining):
-                    while not grid.cells.get(cursor.position).is_blankish():
+                    while not grid.cells.get(cursor.position).is_blankish:
                         cursor.advance_perpendicular()
 
             elif keypress in ['{', '[']:
                 cursor.retreat_perpendicular()
                 if (keypress == '{' and blank_cells_remaining):
-                    while not grid.cells.get(cursor.position).is_blankish():
+                    while not grid.cells.get(cursor.position).is_blankish:
                         cursor.retreat_perpendicular()
 
     print(term.exit_fullscreen())
