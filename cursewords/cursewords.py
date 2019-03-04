@@ -33,8 +33,15 @@ from . import chars
 
 class Cell:
     """ One cell of the grid """
+
+    CORRECTED = 0x10
+    MARKED_WRONG = 0x20
+    REVEALED = 0x40
+    CIRCLED = 0x80
+
     def __init__(self, solution, entry=None):
         self.solution = solution
+        self.metadata = 0
 
         self.number = None
         if entry:
@@ -42,20 +49,58 @@ class Cell:
         else:
             self.entry = "-"
 
-        self.marked_wrong = False
-        self.corrected = False
-        self.revealed = False
-        self.circled = False
-
     def __str__(self):
         return self.entry
 
     def clear(self):
         """ clear this cell's metadata """
         self.entry = "-"
-        if self.marked_wrong:
-            self.marked_wrong = False
-            self.corrected = True
+        if self.is_marked_wrong:
+            self.metadata = Cell.CORRECTED
+        else:
+            self.metadata = 0
+
+    def _set(self, bit, status):
+        if status:
+            self.metadata |= bit
+        else:
+            self.metadata &= ~bit
+
+    @property
+    def is_marked_wrong(self):
+        """ is the answer wrong? """
+        return bool(self.metadata & Cell.MARKED_WRONG)
+
+    def set_marked_wrong(self, val):
+        """ set our wrong answer flag """
+        self._set(Cell.MARKED_WRONG, bool(val))
+
+    @property
+    def is_corrected(self):
+        """ has the answer been corrected? """
+        return bool(self.metadata & Cell.CORRECTED)
+
+    def set_corrected(self, val):
+        """ set our corrected flag """
+        self._set(Cell.CORRECTED, bool(val))
+
+    @property
+    def is_revealed(self):
+        """ has our answer been revealed? """
+        return bool(self.metadata & Cell.REVEALED)
+
+    def set_revealed(self, val):
+        """ set our revealed flag """
+        self._set(Cell.REVEALED, bool(val))
+
+    @property
+    def is_circled(self):
+        """ is our box circled? """
+        return bool(self.metadata & Cell.CIRCLED)
+
+    def set_circled(self, val):
+        """ set our circled flag """
+        self._set(Cell.CIRCLED, bool(val))
 
     @property
     def is_block(self):
@@ -75,12 +120,12 @@ class Cell:
     @property
     def is_blankish(self):
         """ test if we should treat this cell as blank """
-        return self.is_blank or self.marked_wrong
+        return self.is_blank or self.is_marked_wrong
 
     @property
     def is_correct(self):
         """ test if this cell is filled in correctly """
-        return self.entry == self.solution or self.is_block
+        return self.is_block or self.entry == self.solution
 
 
 class Grid:
@@ -167,17 +212,7 @@ class Grid:
             # pylint: disable=invalid-name
             for md, pos in zip(markup, self.cells):
                 cell = self.cells.get(pos)
-                if md >= 128:
-                    cell.circled = True
-                    md -= 128
-                if md >= 64:
-                    cell.revealed = True
-                    md -= 64
-                if md >= 32:
-                    cell.marked_wrong = True
-                    md -= 32
-                if md == 16:
-                    cell.corrected = True
+                cell.md = md
 
         timer_bytes = self.puzfile.extensions.get(puz.Extensions.Timer, None)
         if timer_bytes:
@@ -275,23 +310,14 @@ class Grid:
             fill += entry
         self.puzfile.fill = fill
 
-        if (any(self.cells.get(pos).marked_wrong or
-                self.cells.get(pos).corrected
+        if (any(self.cells.get(pos).is_marked_wrong or
+                self.cells.get(pos).is_corrected
                 for pos in self.cells) or
                 self.puzfile.has_markup()):
             metadata = []
             for pos in self.cells:
                 cell = self.cells[pos]
-                cell_md = 0
-                if cell.corrected:
-                    cell_md += 16
-                if cell.marked_wrong:
-                    cell_md += 32
-                if cell.revealed:
-                    cell_md += 64
-                if cell.circled:
-                    cell_md += 128
-                metadata.append(cell_md)
+                metadata.append(cell.md)
 
             self.puzfile.markup().markup = metadata
 
@@ -304,7 +330,7 @@ class Grid:
         cell = self.cells.get(pos)
         if cell.is_blankish or not cell.is_correct:
             cell.entry = cell.solution
-            cell.revealed = True
+            cell.set_revealed(True)
             self.draw_cell(pos)
 
     def reveal_cells(self, pos_list):
@@ -316,7 +342,7 @@ class Grid:
         """ check one cursed cell """
         cell = self.cells.get(pos)
         if not cell.is_blank and not cell.is_correct:
-            cell.marked_wrong = True
+            cell.set_marked_wrong(True)
             self.draw_cell(pos)
 
     def check_cells(self, pos_list):
@@ -366,19 +392,19 @@ class Grid:
         else:
             value = cell.entry
 
-        if cell.circled:
+        if cell.is_circled:
             value = encircle(value)
 
-        if cell.marked_wrong:
+        if cell.is_marked_wrong:
             value = self.term.red(value.lower())
         else:
             value = self.term.bold(value)
 
         markup = ' '
 
-        if cell.corrected:
+        if cell.is_corrected:
             markup = self.term.red(".")
-        if cell.revealed:
+        if cell.is_revealed:
             markup = self.term.red(":")
 
         return value, markup
@@ -1012,8 +1038,8 @@ def main():
                         cell = grid.cells.get(pos)
                         if cell.is_letter:
                             cell.clear()
-                            cell.corrected = False
-                            cell.revealed = False
+                            cell.set_corrected(False)
+                            cell.set_revealed(False)
                             grid.draw_cell(pos)
                     timer.starting_seconds = timer.time_passed = 0
                     timer.start_time = time.time()
@@ -1100,9 +1126,9 @@ def main():
                     overwrite_mode = True
                 current_cell.entry = keypress.upper()
 
-                if current_cell.marked_wrong:
-                    current_cell.marked_wrong = False
-                    current_cell.corrected = True
+                if current_cell.is_marked_wrong:
+                    current_cell.set_marked_wrong(False)
+                    current_cell.set_corrected(True)
                 modified_since_save = True
                 cursor.advance_within_word(overwrite_mode, wrap_mode=True)
 
