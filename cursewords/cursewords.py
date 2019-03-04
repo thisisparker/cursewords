@@ -4,11 +4,11 @@
 This modules builds us an interactive crossword puzle we can curse at
 """
 
+# pylint: disable=
 # pylint: disable=attribute-defined-outside-init
 # pylint: disable=bad-continuation
 # pylint: disable=bare-except
 # pylint: disable=invalid-name
-# pylint: disable=missing-docstring
 # pylint: disable=redefined-outer-name
 # pylint: disable=simplifiable-if-statement
 # pylint: disable=too-many-arguments
@@ -39,6 +39,7 @@ from . import chars
 
 
 class Cell:
+    """ One cell of the grid """
     def __init__(self, solution, entry=None):
         self.solution = solution
 
@@ -57,28 +58,36 @@ class Cell:
         return self.entry
 
     def clear(self):
+        """ clear this cell's metadata """
         self.entry = "-"
         if self.marked_wrong:
             self.marked_wrong = False
             self.corrected = True
 
     def is_block(self):
+        """ test if this cell is a block """
         return self.solution == "."
 
     def is_letter(self):
+        """ test if this cell is a letter """
         return self.solution.isalnum()
 
     def is_blank(self):
+        """ test if this cell is blank """
         return self.entry == "-"
 
     def is_blankish(self):
+        """ test if we should treat this cell as blank """
         return self.is_blank() or self.marked_wrong
 
     def is_correct(self):
+        """ test if this cell is filled in correctly """
         return self.entry == self.solution or self.is_block()
 
 
 class Grid:
+    """ This represents our abstract grid """
+
     def __init__(self, grid_x, grid_y, term):
         self.grid_x = grid_x
         self.grid_y = grid_y
@@ -87,6 +96,7 @@ class Grid:
         self.notification_area = (term.height-2, self.grid_x)
 
     def load(self, puzfile):
+        """" load our grid from a file """
         self.puzfile = puzfile
         self.cells = {}
         self.row_count = puzfile.height
@@ -164,6 +174,7 @@ class Grid:
         return None
 
     def draw(self):
+        """ draw our grid """
         top_row = self.get_top_row()
         bottom_row = self.get_bottom_row()
         middle_row = self.get_middle_row()
@@ -187,6 +198,7 @@ class Grid:
         return None
 
     def number(self):
+        """ number the grid """
         numbered_squares = []
         for word in self.across_words:
             numbered_squares.append(word[0])
@@ -203,6 +215,7 @@ class Grid:
         return None
 
     def fill(self):
+        """ fill the grid with its solution """
         for position in self.cells:
             y_coord, x_coord = self.to_term(position)
             cell = self.cells[position]
@@ -220,6 +233,7 @@ class Grid:
         return None
 
     def confirm_quit(self, modified_since_save):
+        """ confirm that the user is done cursing at this puzzle """
         confirmed = True
         if modified_since_save:
             confirmation = self.get_notification_input(
@@ -233,6 +247,7 @@ class Grid:
         return confirmed
 
     def confirm_clear(self):
+        """ confirm that the user wants to curse at the blank puzzle again """
         confirmation = self.get_notification_input("Clear puzzle? (y/n)",
                                 chars=1, blocking=True, timeout=5)
         if confirmation.lower() == 'y':
@@ -242,6 +257,7 @@ class Grid:
         return confirmed
 
     def confirm_reset(self):
+        """ confirm that the user wants to reset this cursed puzzle """
         confirmation = self.get_notification_input("Reset puzzle? (y/n)",
                                 chars=1, blocking=True, timeout=5)
         if confirmation.lower() == 'y':
@@ -251,6 +267,7 @@ class Grid:
         return confirmed
 
     def save(self, filename):
+        """ save the puzzle so the user can curse at it more later """
         fill = ''
         for pos in self.cells:
             cell = self.cells[pos]
@@ -288,6 +305,7 @@ class Grid:
         self.send_notification("Current puzzle state saved.")
 
     def reveal_cell(self, pos):
+        """ reveal one cursed cell """
         cell = self.cells.get(pos)
         if cell.is_blankish() or not cell.is_correct():
             cell.entry = cell.solution
@@ -295,20 +313,25 @@ class Grid:
             self.draw_cell(pos)
 
     def reveal_cells(self, pos_list):
+        """ reveal a bunch of cursed cells """
         for pos in pos_list:
             self.reveal_cell(pos)
 
     def check_cell(self, pos):
+        """ check one cursed cell """
         cell = self.cells.get(pos)
         if not cell.is_blank() and not cell.is_correct():
             cell.marked_wrong = True
             self.draw_cell(pos)
 
     def check_cells(self, pos_list):
+        """ chuck a bunch of cursed cells """
         for pos in pos_list:
             self.check_cell(pos)
 
     def to_term(self, position):
+        """ convert one cursed cell position from grid to terminal coordinates
+        """
         point_x, point_y = position
         term_x = self.grid_x + (4 * point_x) + 2
         term_y = self.grid_y + (2 * point_y) + 1
@@ -316,6 +339,7 @@ class Grid:
 
 
     def make_row(self, leftmost, middle, divider, rightmost):
+        """ make an arbitrary row """
         row = leftmost
         for col in range(1, self.column_count * 4):
             new_char = divider if col % 4 == 0 else middle
@@ -324,18 +348,23 @@ class Grid:
         return row
 
     def get_top_row(self):
+        """ get the top row """
         return self.make_row(chars.ulcorner, chars.hline, chars.ttee, chars.urcorner)
 
     def get_bottom_row(self):
+        """ get the bottom row """
         return self.make_row(chars.llcorner, chars.hline, chars.btee, chars.lrcorner)
 
     def get_middle_row(self):
+        """ get a row in the middle """
         return self.make_row(chars.vline, " ", chars.vline, chars.vline)
 
     def get_divider_row(self):
+        """ get a divider row """
         return self.make_row(chars.ltee, chars.hline, chars.bigplus, chars.rtee)
 
     def compile_cell(self, position):
+        """" compile the various attributes of one cell """
         cell = self.cells.get(position)
         if cell.is_blank():
             value = " "
@@ -360,22 +389,26 @@ class Grid:
         return value, markup
 
     def draw_cell(self, position):
+        """ draw a cell on the terminal """
         value, markup = self.compile_cell(position)
         value += markup
         print(self.term.move(*self.to_term(position)) + value)
 
     def draw_highlighted_cell(self, position):
+        """ draw a highlit cell on the terminal """
         value, markup = self.compile_cell(position)
         value = self.term.underline(value) + markup
         print(self.term.move(*self.to_term(position)) + value)
 
     def draw_cursor_cell(self, position):
+        """ draw a cursor on the terminal """
         value, markup = self.compile_cell(position)
         value = self.term.reverse(value) + markup
         print(self.term.move(*self.to_term(position)) + value)
 
     def get_notification_input(self, message, timeout=5, chars=3,
             input_condition=str.isalnum, blocking=False):
+        """ get input from our notification system """
 
         # If there's already a notification timer running, stop it.
         try:
@@ -411,6 +444,7 @@ class Grid:
         return user_input
 
     def send_notification(self, message, timeout=5):
+        """ send a notification """
         self.notification_timer = threading.Timer(timeout,
                 self.clear_notification_area)
         self.notification_timer.daemon = True
@@ -419,16 +453,19 @@ class Grid:
         self.notification_timer.start()
 
     def clear_notification_area(self):
+        """ clear our notification """
         print(self.term.move(*self.notification_area) + self.term.clear_eol)
 
 
 class Cursor:
+    """ This class represents our cursor and active region """
     def __init__(self, position, direction, grid):
         self.position = position
         self.direction = direction
         self.grid = grid
 
     def switch_direction(self, to=None):
+        """ switch from down to across or vice-versa """
         if to:
             self.direction = to
         elif self.direction == "across":
@@ -437,28 +474,33 @@ class Cursor:
             self.direction = "across"
 
     def advance(self):
+        """ move forward """
         if self.direction == "across":
             self.position = self.move_right()
         elif self.direction == "down":
             self.position = self.move_down()
 
     def retreat(self):
+        """ move backward """
         if self.direction == "across":
             self.position = self.move_left()
         elif self.direction == "down":
             self.position = self.move_up()
 
     def advance_perpendicular(self):
+        """ move forward along the oposite access as our orientation """
         self.switch_direction()
         self.advance()
         self.switch_direction()
 
     def retreat_perpendicular(self):
+        """ move backward along the oposite access as our orientation """
         self.switch_direction()
         self.retreat()
         self.switch_direction()
 
     def advance_within_word(self, overwrite_mode=False, wrap_mode=False):
+        """ move forward within a word """
         within_pos = self.move_within_word(overwrite_mode, wrap_mode)
         if within_pos:
             self.position = within_pos
@@ -466,6 +508,7 @@ class Cursor:
             self.advance_to_next_word(blank_placement=True)
 
     def move_within_word(self, overwrite_mode=False, wrap_mode=False):
+        """ move arbitrarily within a word """
         word_spaces = self.current_word()
         current_space = word_spaces.index(self.position)
         ordered_spaces = word_spaces[current_space + 1:]
@@ -480,6 +523,7 @@ class Cursor:
         return next(iter(ordered_spaces), None)
 
     def retreat_within_word(self, end_placement=False, blank_placement=False):
+        """ move backward within a word """
         pos_index = self.current_word().index(self.position)
         earliest_blank = self.earliest_blank_in_word()
 
@@ -493,6 +537,7 @@ class Cursor:
             self.retreat_to_previous_word(end_placement, blank_placement)
 
     def advance_to_next_word(self, blank_placement=False):
+        """ move forward to next word """
         if self.direction == "across":
             word_group = self.grid.across_words
             next_words = self.grid.down_words_grouped
@@ -528,6 +573,7 @@ class Cursor:
     def retreat_to_previous_word(self,
                                  end_placement=False,
                                  blank_placement=False):
+        """ move back to previous word """
         if self.direction == "across":
             word_group = self.grid.across_words
             next_words = self.grid.down_words_grouped
@@ -559,11 +605,13 @@ class Cursor:
             self.retreat_to_previous_word(end_placement, blank_placement)
 
     def earliest_blank_in_word(self):
+        """ find the earliest blank in a word """
         blanks = (pos for pos in self.current_word()
                     if self.grid.cells.get(pos).is_blankish())
         return next(blanks, None)
 
     def move_right(self):
+        """ moves right """
         spaces = list(itertools.chain(*self.grid.across_words))
         current_space = spaces.index(self.position)
         ordered_spaces = spaces[current_space + 1:] + spaces[:current_space]
@@ -571,6 +619,7 @@ class Cursor:
         return next(iter(ordered_spaces))
 
     def move_left(self):
+        """ moves left """
         spaces = list(itertools.chain(*self.grid.across_words))
         current_space = spaces.index(self.position)
         ordered_spaces = (spaces[current_space - 1::-1] +
@@ -579,6 +628,7 @@ class Cursor:
         return next(iter(ordered_spaces))
 
     def move_down(self):
+        """ moves down """
         spaces = list(itertools.chain(*self.grid.down_words))
         current_space = spaces.index(self.position)
         ordered_spaces = spaces[current_space + 1:] + spaces[:current_space]
@@ -586,6 +636,7 @@ class Cursor:
         return next(iter(ordered_spaces))
 
     def move_up(self):
+        """ moves up """
         spaces = list(itertools.chain(*self.grid.down_words))
         current_space = spaces.index(self.position)
         ordered_spaces = (spaces[current_space - 1::-1] +
@@ -594,6 +645,7 @@ class Cursor:
         return next(iter(ordered_spaces))
 
     def current_word(self):
+        """ gets the current word """
         pos = self.position
         word = []
 
@@ -605,6 +657,7 @@ class Cursor:
         return word
 
     def go_to_numbered_square(self):
+        """ goes to a numbered square """
         num = self.grid.get_notification_input("Enter square number:",
                                                input_condition=str.isdigit)
         if num:
@@ -622,6 +675,7 @@ class Cursor:
 
 
 class Timer(threading.Thread):
+    """ This is our timer """
     def __init__(self, grid, starting_seconds=0, is_running=True, active=True):
         self.starting_seconds = starting_seconds
         self.is_running = is_running
@@ -632,6 +686,7 @@ class Timer(threading.Thread):
         self.grid = grid
 
     def run(self):
+        """ Without further ado, it's time to start... RUNNING!! """
         self.start_time = time.time()
         self.time_passed = self.starting_seconds
 
@@ -646,6 +701,7 @@ class Timer(threading.Thread):
             time.sleep(0.5)
 
     def show_time(self):
+        """ show the time on our timer """
         y_coord = 2
         x_coord = self.grid.grid_x + self.grid.column_count * 4 - 7
 
@@ -653,6 +709,7 @@ class Timer(threading.Thread):
                 + self.display_format())
 
     def display_format(self):
+        """ build our time format for display """
         time_amount = self.time_passed
 
         m, s = divmod(time_amount, 60)
@@ -664,6 +721,7 @@ class Timer(threading.Thread):
         return time_string
 
     def save_format(self):
+        """ build our time format for saving """
         time_amount = self.time_passed
 
         save_string = '{t},{r}'.format(
@@ -674,15 +732,18 @@ class Timer(threading.Thread):
         return save_bytes
 
     def pause(self):
+        """ pause our timer """
         self.is_running = False
 
     def unpause(self):
+        """ unpause our timer """
         self.starting_seconds = self.time_passed
         self.start_time = time.time()
         self.is_running = True
 
 
 def small_nums(number):
+    """ tiny versions of normal numbers """
     small_num = ""
     num_dict = {"1": "₁", "2": "₂", "3": "₃", "4": "₄", "5": "₅",
                 "6": "₆", "7": "₇", "8": "₈", "9": "₉", "0": "₀"}
@@ -692,6 +753,7 @@ def small_nums(number):
     return small_num
 
 def encircle(letter):
+    """ unicode for circled letters """
     circle_dict = {"A": "Ⓐ", "B": "Ⓑ", "C": "Ⓒ", "D": "Ⓓ", "E": "Ⓔ", "F": "Ⓕ",
                    "G": "Ⓖ", "H": "Ⓗ", "I": "Ⓘ", "J": "Ⓙ", "K": "Ⓚ", "L": "Ⓛ",
                    "M": "Ⓜ", "N": "Ⓝ", "O": "Ⓞ", "P": "Ⓟ", "Q": "Ⓠ", "R": "Ⓡ",
@@ -701,6 +763,7 @@ def encircle(letter):
 
 
 def main():
+    """ This is our main loop """
     version_dir = os.path.abspath(os.path.dirname((__file__)))
     version_file = os.path.join(version_dir, 'version')
     with open(version_file) as f:
