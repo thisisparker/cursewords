@@ -19,7 +19,6 @@ This modules builds us an interactive crossword puzle we can curse at
 # pylint: disable=too-many-locals
 # pylint: disable=too-many-public-methods
 # pylint: disable=too-many-statements
-# pylint: disable=useless-return
 # pylint: disable=
 
 import argparse
@@ -170,8 +169,6 @@ class Grid:
         else:
             self.start_time, self.timer_active = 0, 1
 
-        return None
-
     def draw(self):
         """ draw our grid """
         top_row = self.get_top_row()
@@ -194,8 +191,6 @@ class Grid:
         print(self.term.move(self.grid_y + self.row_count * 2, self.grid_x)
               + self.term.dim(bottom_row))
 
-        return None
-
     def number(self):
         """ number the grid """
         numbered_squares = []
@@ -210,8 +205,6 @@ class Grid:
 
         for number, square in enumerate(numbered_squares, 1):
             self.cells.get(square).number = number
-
-        return None
 
     def fill(self):
         """ fill the grid with its solution """
@@ -228,8 +221,6 @@ class Grid:
                 small = small_nums(cell.number)
                 x_pos = x_coord - 1
                 print(self.term.move(y_coord - 1, x_pos) + small)
-
-        return None
 
     def confirm_quit(self, modified_since_save):
         """ confirm that the user is done cursing at this puzzle """
