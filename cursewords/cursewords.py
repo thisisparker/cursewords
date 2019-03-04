@@ -28,11 +28,17 @@ def main():
     parser.add_argument('--debug', action='store_true',
                         help="""run in debugging mode""")
     parser.add_argument('--version', action='version', version=version)
+    parser.add_argument('--print', action='store_const', dest='mode',
+                        const='printing', default='solving', help="""print this puzzle""")
+    parser.add_argument('--printer', metavar='PRINTER', action='store', type=str,
+                        help="""name of a printer""")
 
     args = parser.parse_args()
     filename = args.filename
     downs_only = args.downs_only
     debug = args.debug
+    mode = args.mode # pylint: disable=unused-variable
+    printer = args.printer # pylint: disable=unused-variable
 
     solver = solving.Solver(filename, version, downs_only, debug)
     solver.solve()
