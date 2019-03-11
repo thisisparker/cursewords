@@ -94,7 +94,6 @@ class Grid:
 
         self.across_words = []
         self.down_words = []
-        self.down_words_grouped = []
         self.across_clues = []
         self.down_clues = []
 
@@ -102,6 +101,12 @@ class Grid:
         self.timer_active = False
         self.notification_timer = None
         self.notification_area = (term.height-2, self.grid_x)
+
+    @property
+    def down_words_grouped(self):
+        """ get our down word groups """
+        return sorted(self.down_words,
+                      key=lambda word: (word[0][1], word[0][0]))
 
     def load(self, puzfile):
         """" load our grid from a file """
@@ -146,9 +151,6 @@ class Grid:
                     current_word = []
             if len(current_word) > 1:
                 self.down_words.append(current_word)
-
-        self.down_words_grouped = sorted(self.down_words,
-                key=lambda word: (word[0][1], word[0][0]))
 
         num = self.puzfile.clue_numbering()
         self.across_clues = [word['clue'] for word in num.across]
