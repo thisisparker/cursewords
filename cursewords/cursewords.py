@@ -269,6 +269,7 @@ class Grid:
         if cell.is_blankish() or not cell.is_correct():
             cell.entry = cell.solution
             cell.revealed = True
+            cell.marked_wrong = False
             self.draw_cell(pos)
 
     def reveal_cells(self, pos_list):
