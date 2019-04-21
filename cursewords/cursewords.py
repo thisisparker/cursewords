@@ -209,10 +209,9 @@ class Grid:
         if self.puzfile.has_markup():
             markup = self.puzfile.markup().markup
 
-            # pylint: disable=invalid-name
-            for md, pos in zip(markup, self.cells):
+            for metadata, pos in zip(markup, self.cells):
                 cell = self.cells.get(pos)
-                cell.md = md
+                cell.metadata = metadata
 
         timer_bytes = self.puzfile.extensions.get(puz.Extensions.Timer, None)
         if timer_bytes:
@@ -317,7 +316,7 @@ class Grid:
             metadata = []
             for pos in self.cells:
                 cell = self.cells[pos]
-                metadata.append(cell.md)
+                metadata.append(cell.metadata)
 
             self.puzfile.markup().markup = metadata
 
