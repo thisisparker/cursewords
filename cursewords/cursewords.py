@@ -803,15 +803,20 @@ def main():
                         help="path of AcrossLite .puz puzzle file")
     parser.add_argument('--downs-only', action='store_true',
                         help="""displays only the down clues""")
+    parser.add_argument('--debug', action='store_true',
+                        help="""run in debugging mode""")
     parser.add_argument('--version', action='version', version=version)
 
     args = parser.parse_args()
     filename = args.filename
     downs_only = args.downs_only
+    debug = args.debug
 
     try:
         puzfile = puz.read(filename)
     except:
+        if debug:
+            raise
         sys.exit("Unable to parse {} as a .puz file.".format(filename))
 
     term = Terminal()
