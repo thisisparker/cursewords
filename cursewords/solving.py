@@ -819,7 +819,14 @@ class Solver:
                         timer.start_time = time.time()
                         timer.show_time()
                         modified_since_save = True
-                        if not puzzle_paused:
+                        puzzle_complete = False
+                        with self.term.location(x=self.grid.x, y=2):
+                            print("                            ",
+                                  self.term.clear_eol)
+                        if puzzle_paused:
+                            puzzle_paused = False
+                            timer.unpause()
+                        else:
                             old_word = []
                     else:
                         self.send_notification("Reset command canceled.")
