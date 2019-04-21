@@ -4,24 +4,18 @@
 Control flow for solving mode
 """
 
-# pylint: disable=bare-except
 # pylint: disable=too-many-arguments
-# pylint: disable=too-many-boolean-expressions
 # pylint: disable=too-many-branches
-# pylint: disable=too-many-instance-attributes
-# pylint: disable=too-many-lines
+# pylint: disable=too-many-boolean-expressions
 # pylint: disable=too-many-locals
 # pylint: disable=too-many-public-methods
 # pylint: disable=too-many-statements
 
-import argparse
 import itertools
-import os
 import sys
-import time
 import textwrap
 import threading
-
+import time
 import puz
 
 from blessed import Terminal
@@ -322,39 +316,20 @@ class Timer(threading.Thread):
         self.is_running = True
 
 
-class Solver: # pylint: disable=too-few-public-methods
+class Solver:
     """ This is our main engine for driving the solving UI """
 
-    def __init__(self):
-        version_dir = os.path.abspath(os.path.dirname((__file__)))
-        version_file = os.path.join(version_dir, 'version')
-        with open(version_file) as file:
-            version = file.read().strip()
-
-        parser = argparse.ArgumentParser(
-            prog='cursewords',
-            description="A terminal-based crossword puzzle solving interface.")
-
-        parser.add_argument('filename', metavar='PUZfile',
-                            help="path of AcrossLite .puz puzzle file")
-        parser.add_argument('--downs-only', action='store_true',
-                            help="""displays only the down clues""")
-        parser.add_argument('--debug', action='store_true',
-                            help="""run in debugging mode""")
-        parser.add_argument('--version', action='version', version=version)
-
-        args = parser.parse_args()
-        self.filename = args.filename
-        self.downs_only = args.downs_only # pylint: disable=unused-variable
-        debug = args.debug
-
+    def __init__(self, filename, version, downs_only=False, debug=False):
+        self.filename = filename
         try:
-            puzfile = puz.read(self.filename)
-        except:
+            puzfile = puz.read(filename)
+        except: # pylint: disable=bare-except
             if debug:
                 raise
             sys.exit("Unable to parse {} as a .puz file.".format(
                 self.filename))
+
+        self.downs_only = downs_only
 
         self.grid = Grid(2, 4)
         self.grid.load(puzfile)
@@ -803,7 +778,7 @@ class Solver: # pylint: disable=too-few-public-methods
                 # ctrl-s
                 elif keypress == chr(19):
                     self.puzfile.extensions[puz.Extensions.Timer] = \
-                        timer.save_format()
+                            timer.save_format()
                     self.grid.save(self.filename)
                     modified_since_save = False
 
