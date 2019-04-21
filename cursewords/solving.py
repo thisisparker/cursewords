@@ -5,7 +5,6 @@ Control flow for solving mode
 """
 
 # pylint: disable=bare-except
-# pylint: disable=no-self-use
 # pylint: disable=too-many-arguments
 # pylint: disable=too-many-boolean-expressions
 # pylint: disable=too-many-branches
@@ -354,30 +353,13 @@ class Solver: # pylint: disable=too-few-public-methods
 
         term = Terminal()
 
-        grid_x = 2
-        grid_y = 4
-
-        grid = Grid(grid_x, grid_y, term) # pylint: disable=undefined-variable
-        grid.load(puzfile)
-
-        puzzle_width = 4 * grid.column_count
-        puzzle_height = 2 * grid.row_count
-
-        min_width = (puzzle_width
-                     + grid_x
-                     + 2) # a little breathing room
-
-        min_height = (puzzle_height
-                      + grid_y # includes the top bar + timer
-                      + 2 # padding above clues
-                      + 3 # clue area
-                      + 2 # toolbar
-                      + 2) # again, just some breathing room
+        self.grid = Grid(2, 4, term)
+        self.grid.load(puzfile)
 
         necessary_resize = []
-        if term.width < min_width:
+        if term.width < self.min_width:
             necessary_resize.append("wider")
-        if term.height < min_height:
+        if term.height < self.min_height:
             necessary_resize.append("taller")
 
         if necessary_resize:
@@ -389,7 +371,7 @@ class Solver: # pylint: disable=too-few-public-methods
                 ' and '.join(necessary_resize)))
             sys.exit(' '.join(exit_text.splitlines()))
 
-        if grid.puzfile.has_rebus():
+        if self.puzfile.has_rebus():
             exit_text = textwrap.dedent("""\
             This puzzle contains features not yet supported
             by cursewords. Sorry about that!""")
@@ -415,6 +397,38 @@ class Solver: # pylint: disable=too-few-public-methods
 
         with term.location(x=0, y=0):
             print(term.dim(term.reverse(headline)))
+
+    @property
+    def min_width(self):
+        """ The minimum terminal width we can work with """
+        return (self.puzzle_width
+                + self.grid.x
+                + 2) # a little breathing room
+
+    @property
+    def min_height(self):
+        """ The minimum terminal height we can work with """
+        return (self.puzzle_height
+                + self.grid.y # includes the top bar + timer
+                + 2 # padding above clues
+                + 3 # clue area
+                + 2 # toolbar
+                + 2) # again, just some breathing room
+
+    @property
+    def puzfile(self):
+        """ our puz file """
+        return self.grid.puzfile
+
+    @property
+    def puzzle_width(self):
+        """ The width of our grid, in screen characters """
+        return 4 * self.grid.column_count
+
+    @property
+    def puzzle_height(self):
+        """ The height of our grid, in screen characters """
+        return 2 * self.grid.row_count
 
     def solve(self):
         """ our main solving loop """
@@ -448,7 +462,7 @@ class Solver: # pylint: disable=too-few-public-methods
             with term.location(x=grid_x, y=term.height - 2):
                 print(toolbar, end='')
 
-        clue_width = min(int(1.3 * (puzzle_width) - grid_x),
+        clue_width = min(int(1.3 * (self.puzzle_width) - grid_x),
                          term.width - 2 - grid_x)
 
         clue_wrapper = textwrap.TextWrapper(
@@ -547,7 +561,8 @@ class Solver: # pylint: disable=too-few-public-methods
 
                 # ctrl-s
                 elif keypress == chr(19):
-                    grid.puzfile.extensions[puz.Extensions.Timer] = timer.save_format()
+                    self.puzfile.extensions[puz.Extensions.Timer] = \
+                        timer.save_format()
                     grid.save(filename)
                     modified_since_save = False
 
