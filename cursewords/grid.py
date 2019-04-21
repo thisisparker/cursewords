@@ -9,9 +9,6 @@ This is the grid itself.
 # pylint: disable=too-many-instance-attributes
 # pylint: disable=too-many-public-methods
 
-import threading
-import puz
-
 from . import chars
 
 
@@ -111,14 +108,26 @@ class Cell:
         """ test if this cell is filled in correctly """
         return self.is_block or self.entry == self.solution
 
+    def compile(self):
+        """ compile the various attributes of one cell """
+
+        if self.is_blank:
+            value = " "
+        else:
+            value = self.entry
+
+        if self.is_circled:
+            value = chars.encircle(value)
+
+        return value
+
 
 class Grid:
     """ This represents our abstract grid """
 
-    def __init__(self, grid_x, grid_y, term):
+    def __init__(self, grid_x, grid_y):
         self.x = grid_x # pylint: disable=invalid-name
         self.y = grid_y # pylint: disable=invalid-name
-        self.term = term
         self.puzfile = None
         self.cells = {}
         self.row_count = 0
@@ -134,7 +143,6 @@ class Grid:
         self.start_time = 0
         self.timer_active = False
         self.notification_timer = None
-        self.notification_area = (term.height-2, self.x)
 
     @property
     def down_words_grouped(self):
@@ -197,32 +205,6 @@ class Grid:
                 cell = self.cells.get(pos)
                 cell.metadata = metadata
 
-        timer_bytes = self.puzfile.extensions.get(puz.Extensions.Timer, None)
-        if timer_bytes:
-            self.start_time, self.timer_active = timer_bytes.decode().split(',')
-        else:
-            self.start_time, self.timer_active = 0, 1
-
-    def draw(self):
-        """ draw our grid """
-        top_row = self.get_top_row()
-        bottom_row = self.get_bottom_row()
-        middle_row = self.get_middle_row()
-        divider_row = self.get_divider_row()
-
-        print(self.term.move(self.y, self.x)
-              + self.term.dim(top_row))
-        for index, y_val in enumerate(
-                range(self.y + 1, self.y + self.row_count * 2), 1):
-            if index % 2 == 0:
-                print(self.term.move(y_val, self.x) +
-                      self.term.dim(divider_row))
-            else:
-                print(self.term.move(y_val, self.x) +
-                      self.term.dim(middle_row))
-        print(self.term.move(self.y + self.row_count * 2, self.x)
-              + self.term.dim(bottom_row))
-
     def number(self):
         """ number the grid """
         numbered_squares = []
@@ -237,47 +219,6 @@ class Grid:
 
         for number, square in enumerate(numbered_squares, 1):
             self.cells.get(square).number = number
-
-    def fill(self):
-        """ fill the grid with its solution """
-        for position in self.cells:
-            y_coord, x_coord = self.to_term(position)
-            cell = self.cells[position]
-            if cell.is_letter:
-                self.draw_cell(position)
-            elif cell.is_block:
-                print(self.term.move(y_coord, x_coord - 1) +
-                      self.term.dim(chars.squareblock))
-
-            if cell.number:
-                small = chars.small_nums(cell.number)
-                x_pos = x_coord - 1
-                print(self.term.move(y_coord - 1, x_pos) + small)
-
-    def confirm_quit(self, modified_since_save):
-        """ confirm that the user is done cursing at this puzzle """
-        confirmed = True
-        if modified_since_save:
-            confirmation = self.get_notification_input(
-                "Quit without saving? (y/n)",
-                limit=1, blocking=True, timeout=5)
-            confirmed = bool(confirmation.lower() == 'y')
-
-        return confirmed
-
-    def confirm_clear(self):
-        """ confirm that the user wants to curse at the blank puzzle again """
-        confirmation = self.get_notification_input(
-            "Clear puzzle? (y/n)", limit=1, blocking=True, timeout=5)
-        confirmed = bool(confirmation.lower() == 'y')
-        return confirmed
-
-    def confirm_reset(self):
-        """ confirm that the user wants to reset this cursed puzzle """
-        confirmation = self.get_notification_input(
-            "Reset puzzle? (y/n)", limit=1, blocking=True, timeout=5)
-        confirmed = bool(confirmation.lower() == 'y')
-        return confirmed
 
     def save(self, filename):
         """ save the puzzle so the user can curse at it more later """
@@ -306,41 +247,6 @@ class Grid:
 
         self.puzfile.save(filename)
 
-        self.send_notification("Current puzzle state saved.")
-
-    def reveal_cell(self, pos):
-        """ reveal one cursed cell """
-        cell = self.cells.get(pos)
-        if cell.is_blankish or not cell.is_correct:
-            cell.entry = cell.solution
-            cell.set_revealed(True)
-            self.draw_cell(pos)
-
-    def reveal_cells(self, pos_list):
-        """ reveal a bunch of cursed cells """
-        for pos in pos_list:
-            self.reveal_cell(pos)
-
-    def check_cell(self, pos):
-        """ check one cursed cell """
-        cell = self.cells.get(pos)
-        if not cell.is_blank and not cell.is_correct:
-            cell.set_marked_wrong(True)
-            self.draw_cell(pos)
-
-    def check_cells(self, pos_list):
-        """ chuck a bunch of cursed cells """
-        for pos in pos_list:
-            self.check_cell(pos)
-
-    def to_term(self, position):
-        """ convert one cursed cell position from grid to terminal coordinates
-        """
-        point_x, point_y = position
-        term_x = self.x + (4 * point_x) + 2
-        term_y = self.y + (2 * point_y) + 1
-        return (term_y, term_x)
-
     def make_row(self, leftmost, middle, divider, rightmost):
         """ make an arbitrary row """
         row = leftmost
@@ -365,102 +271,6 @@ class Grid:
     def get_divider_row(self):
         """ get a divider row """
         return self.make_row(chars.ltee, chars.hline, chars.bigplus, chars.rtee)
-
-    def compile_cell(self, position):
-        """" compile the various attributes of one cell """
-        cell = self.cells.get(position)
-        if cell.is_blank:
-            value = " "
-        else:
-            value = cell.entry
-
-        if cell.is_circled:
-            value = chars.encircle(value)
-
-        if cell.is_marked_wrong:
-            value = self.term.red(value.lower())
-        else:
-            value = self.term.bold(value)
-
-        markup = ' '
-
-        if cell.is_corrected:
-            markup = self.term.red(".")
-        if cell.is_revealed:
-            markup = self.term.red(":")
-
-        return value, markup
-
-    def draw_cell(self, position):
-        """ draw a cell on the terminal """
-        value, markup = self.compile_cell(position)
-        value += markup
-        print(self.term.move(*self.to_term(position)) + value)
-
-    def draw_highlighted_cell(self, position):
-        """ draw a highlit cell on the terminal """
-        value, markup = self.compile_cell(position)
-        value = self.term.underline(value) + markup
-        print(self.term.move(*self.to_term(position)) + value)
-
-    def draw_cursor_cell(self, position):
-        """ draw a cursor on the terminal """
-        value, markup = self.compile_cell(position)
-        value = self.term.reverse(value) + markup
-        print(self.term.move(*self.to_term(position)) + value)
-
-    def get_notification_input(self, message, timeout=5, limit=3,
-                               input_condition=str.isalnum, blocking=False):
-        """ get input from our notification system """
-
-        # If there's already a notification timer running, stop it.
-        try:
-            self.notification_timer.cancel()
-        except: # pylint: disable=bare-except
-            pass
-
-        input_phrase = message + " "
-        key_input_place = len(input_phrase)
-        print(self.term.move(*self.notification_area)
-              + self.term.reverse(input_phrase)
-              + self.term.clear_eol)
-
-        user_input = ''
-        keypress = None
-        while keypress != '' and len(user_input) < limit:
-            keypress = self.term.inkey(timeout)
-            if input_condition(keypress):
-                user_input += keypress
-                print(self.term.move(self.notification_area[0],
-                                     self.notification_area[1]
-                                     + key_input_place),
-                      user_input)
-            elif keypress.name in ['KEY_DELETE']:
-                user_input = user_input[:-1]
-                print(self.term.move(self.notification_area[0],
-                                     self.notification_area[1]
-                                     + key_input_place),
-                      user_input + self.term.clear_eol)
-            elif blocking and keypress.name not in ['KEY_ENTER', 'KEY_ESCAPE']:
-                continue
-            else:
-                break
-
-        return user_input
-
-    def send_notification(self, message, timeout=5):
-        """ send a notification """
-        self.notification_timer = \
-            threading.Timer(timeout, self.clear_notification_area)
-        self.notification_timer.daemon = True
-        print(self.term.move(*self.notification_area)
-              + self.term.reverse(message) + self.term.clear_eol)
-        self.notification_timer.start()
-
-    def clear_notification_area(self):
-        """ clear our notification """
-        print(self.term.move(*self.notification_area) + self.term.clear_eol)
-
 
 # -*- coding: utf-8 -*-
 # vim:fenc=utf-8:tw=75
