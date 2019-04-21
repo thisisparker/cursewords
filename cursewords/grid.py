@@ -116,8 +116,8 @@ class Grid:
     """ This represents our abstract grid """
 
     def __init__(self, grid_x, grid_y, term):
-        self.grid_x = grid_x
-        self.grid_y = grid_y
+        self.x = grid_x # pylint: disable=invalid-name
+        self.y = grid_y # pylint: disable=invalid-name
         self.term = term
         self.puzfile = None
         self.cells = {}
@@ -134,7 +134,7 @@ class Grid:
         self.start_time = 0
         self.timer_active = False
         self.notification_timer = None
-        self.notification_area = (term.height-2, self.grid_x)
+        self.notification_area = (term.height-2, self.x)
 
     @property
     def down_words_grouped(self):
@@ -210,17 +210,17 @@ class Grid:
         middle_row = self.get_middle_row()
         divider_row = self.get_divider_row()
 
-        print(self.term.move(self.grid_y, self.grid_x)
+        print(self.term.move(self.y, self.x)
               + self.term.dim(top_row))
         for index, y_val in enumerate(
-                range(self.grid_y + 1, self.grid_y + self.row_count * 2), 1):
+                range(self.y + 1, self.y + self.row_count * 2), 1):
             if index % 2 == 0:
-                print(self.term.move(y_val, self.grid_x) +
+                print(self.term.move(y_val, self.x) +
                       self.term.dim(divider_row))
             else:
-                print(self.term.move(y_val, self.grid_x) +
+                print(self.term.move(y_val, self.x) +
                       self.term.dim(middle_row))
-        print(self.term.move(self.grid_y + self.row_count * 2, self.grid_x)
+        print(self.term.move(self.y + self.row_count * 2, self.x)
               + self.term.dim(bottom_row))
 
     def number(self):
@@ -337,8 +337,8 @@ class Grid:
         """ convert one cursed cell position from grid to terminal coordinates
         """
         point_x, point_y = position
-        term_x = self.grid_x + (4 * point_x) + 2
-        term_y = self.grid_y + (2 * point_y) + 1
+        term_x = self.x + (4 * point_x) + 2
+        term_y = self.y + (2 * point_y) + 1
         return (term_y, term_x)
 
     def make_row(self, leftmost, middle, divider, rightmost):

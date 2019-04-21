@@ -27,6 +27,8 @@ import puz
 
 from blessed import Terminal
 
+from .grid import Grid
+
 
 class Cursor:
     """ This class represents our cursor and active region """
@@ -279,7 +281,7 @@ class Timer(threading.Thread):
     def show_time(self):
         """ show the time on our timer """
         y_coord = 2
-        x_coord = self.grid.grid_x + self.grid.column_count * 4 - 7
+        x_coord = self.grid.x + self.grid.column_count * 4 - 7
 
         print(self.grid.term.move(y_coord, x_coord)
               + self.display_format())
@@ -367,7 +369,7 @@ class Solver: # pylint: disable=too-few-public-methods
             This puzzle is {} columns wide and {} rows tall.
             The terminal window must be {} to properly display
             it.""".format(
-                grid.column_count, grid.row_count,
+                self.grid.column_count, self.grid.row_count,
                 ' and '.join(necessary_resize)))
             sys.exit(' '.join(exit_text.splitlines()))
 
@@ -380,12 +382,12 @@ class Solver: # pylint: disable=too-few-public-methods
         print(term.enter_fullscreen())
         print(term.clear())
 
-        grid.draw()
-        grid.number()
-        grid.fill()
+        self.grid.draw()
+        self.grid.number()
+        self.grid.fill()
 
         software_info = 'cursewords v{}'.format(version)
-        puzzle_info = '{grid.title} - {grid.author}'.format(grid=grid)
+        puzzle_info = '{grid.title} - {grid.author}'.format(grid=self.grid)
         padding = 2
         sw_width = len(software_info) + 5
         pz_width = term.width - sw_width - padding
@@ -447,29 +449,30 @@ class Solver: # pylint: disable=too-few-public-methods
                 shortcut = term.reverse(shortcut)
                 toolbar += "{:<25}".format(' '.join([shortcut, action]))
 
-            with term.location(x=grid_x, y=term.height):
+            with term.location(x=self.grid.x, y=term.height):
                 print(toolbar, end='')
         else:
-            grid.notification_area = (grid.notification_area[0] - 1, grid_x)
+            self.grid.notification_area = (self.grid.notification_area[0] - 1,
+                                           self.grid.x)
             command_split = int(len(commands)/2) - 1
             for idx, (shortcut, action) in enumerate(commands):
                 shortcut = term.reverse(shortcut)
                 toolbar += "{:<25}".format(' '.join([shortcut, action]))
 
                 if idx == command_split:
-                    toolbar += '\n' + grid_x * ' '
+                    toolbar += '\n' + self.grid.x * ' '
 
-            with term.location(x=grid_x, y=term.height - 2):
+            with term.location(x=self.grid.x, y=term.height - 2):
                 print(toolbar, end='')
 
-        clue_width = min(int(1.3 * (self.puzzle_width) - grid_x),
-                         term.width - 2 - grid_x)
+        clue_width = min(int(1.3 * (self.puzzle_width) - self.grid.x),
+                         term.width - 2 - self.grid.x)
 
         clue_wrapper = textwrap.TextWrapper(
-            width=clue_width, max_lines=3, subsequent_indent=grid_x * ' ')
+            width=clue_width, max_lines=3, subsequent_indent=self.grid.x * ' ')
 
-        start_pos = grid.across_words[0][0]
-        cursor = Cursor(start_pos, "across", grid)
+        start_pos = self.grid.across_words[0][0]
+        cursor = Cursor(start_pos, "across", self.grid)
 
         old_word = []
         old_position = start_pos
@@ -479,11 +482,13 @@ class Solver: # pylint: disable=too-few-public-methods
         modified_since_save = False
         to_quit = False
 
-        timer = Timer(grid, starting_seconds=int(grid.start_time),
-                      is_running=True, active=bool(int(grid.timer_active)))
+        timer = Timer(self.grid, starting_seconds=int(self.grid.start_time),
+                      is_running=True,
+                      active=bool(int(self.grid.timer_active)))
         timer.start()
 
-        info_location = {'x': grid_x, 'y': grid_y + 2 * grid.row_count + 2}
+        info_location = {'x': self.grid.x,
+                         'y': self.grid.y + 2 * self.grid.row_count + 2}
 
         with term.raw(), term.hidden_cursor():
             while not to_quit:
@@ -492,23 +497,24 @@ class Solver: # pylint: disable=too-few-public-methods
                 if cursor.current_word() is not old_word:
                     overwrite_mode = False
                     for pos in old_word:
-                        grid.draw_cell(pos)
+                        self.grid.draw_cell(pos)
                     for pos in cursor.current_word():
-                        grid.draw_highlighted_cell(pos)
+                        self.grid.draw_highlighted_cell(pos)
 
                 # Draw the clue for the new word:
                     if cursor.direction == "across":
-                        num_index = grid.across_words.index(
+                        num_index = self.grid.across_words.index(
                             cursor.current_word())
-                        clue = grid.across_clues[num_index]
+                        clue = self.grid.across_clues[num_index]
                         if downs_only:
                             clue = "—"
                     elif cursor.direction == "down":
-                        num_index = grid.down_words_grouped.index(
+                        num_index = self.grid.down_words_grouped.index(
                             cursor.current_word())
-                        clue = grid.down_clues[num_index]
+                        clue = self.grid.down_clues[num_index]
 
-                    num = str(grid.cells.get(cursor.current_word()[0]).number)
+                    num = self.grid.cells.get(cursor.current_word()[0]).number
+                    num = str(num)
                     compiled_clue = (num + " " + cursor.direction.upper()
                                      + ": " + clue)
                     wrapped_clue = clue_wrapper.wrap(compiled_clue)
@@ -529,23 +535,23 @@ class Solver: # pylint: disable=too-few-public-methods
                 # Otherwise, just draw the old square now that it's not under
                 # the cursor
                 else:
-                    grid.draw_highlighted_cell(old_position)
+                    self.grid.draw_highlighted_cell(old_position)
 
-                current_cell = grid.cells.get(cursor.position)
-                grid.draw_cursor_cell(cursor.position)
+                current_cell = self.grid.cells.get(cursor.position)
+                self.grid.draw_cursor_cell(cursor.position)
 
                 # Check if the puzzle is complete!
-                if not puzzle_complete and all(grid.cells.get(pos).is_correct
-                                               for pos in grid.cells):
+                if not puzzle_complete and all(self.grid.cells.get(pos).is_correct
+                                               for pos in self.grid.cells):
                     puzzle_complete = True
-                    with term.location(x=grid_x, y=2):
+                    with term.location(x=self.grid.x, y=2):
                         print(term.reverse("You've completed the puzzle!"),
                               term.clear_eol)
                     timer.show_time()
                     timer.active = False
 
-                blank_cells_remaining = any(grid.cells.get(pos).is_blankish
-                                            for pos in grid.cells)
+                blank_cells_remaining = any(self.grid.cells.get(pos).is_blankish
+                                            for pos in self.grid.cells)
 
                 # Where the magic happens: get key input
                 keypress = term.inkey()
@@ -555,22 +561,22 @@ class Solver: # pylint: disable=too-few-public-methods
 
                 # ctrl-q
                 if keypress == chr(17):
-                    to_quit = grid.confirm_quit(modified_since_save)
+                    to_quit = self.grid.confirm_quit(modified_since_save)
                     if not to_quit:
-                        grid.send_notification("Quit command canceled.")
+                        self.grid.send_notification("Quit command canceled.")
 
                 # ctrl-s
                 elif keypress == chr(19):
                     self.puzfile.extensions[puz.Extensions.Timer] = \
                         timer.save_format()
-                    grid.save(filename)
+                    self.grid.save(filename)
                     modified_since_save = False
 
                 # ctrl-p
                 elif keypress == chr(16) and not puzzle_complete:
                     if timer.is_running:
                         timer.pause()
-                        grid.draw()
+                        self.grid.draw()
 
                         with term.location(**info_location):
                             print('\r\n'.join(['PUZZLE PAUSED' + term.clear_eol,
@@ -581,23 +587,23 @@ class Solver: # pylint: disable=too-few-public-methods
 
                     else:
                         timer.unpause()
-                        grid.fill()
+                        self.grid.fill()
                         old_word = []
 
                         puzzle_paused = False
 
                 # ctrl-z
                 elif keypress == chr(26):
-                    confirm = grid.confirm_reset()
+                    confirm = self.grid.confirm_reset()
                     if confirm:
-                        grid.send_notification("Puzzle reset.")
-                        for pos in grid.cells:
-                            cell = grid.cells.get(pos)
+                        self.grid.send_notification("Puzzle reset.")
+                        for pos in self.grid.cells:
+                            cell = self.grid.cells.get(pos)
                             if cell.is_letter:
                                 cell.clear()
                                 cell.set_corrected(False)
                                 cell.set_revealed(False)
-                                grid.draw_cell(pos)
+                                self.grid.draw_cell(pos)
                         timer.starting_seconds = timer.time_passed = 0
                         timer.start_time = time.time()
                         timer.show_time()
@@ -605,7 +611,7 @@ class Solver: # pylint: disable=too-few-public-methods
                         if not puzzle_paused:
                             old_word = []
                     else:
-                        grid.send_notification("Reset command canceled.")
+                        self.grid.send_notification("Reset command canceled.")
 
                 # If the puzzle is paused, skip all the rest of the logic
                 elif puzzle_paused:
@@ -613,24 +619,24 @@ class Solver: # pylint: disable=too-few-public-methods
 
                 # ctrl-c
                 elif keypress == chr(3):
-                    group = grid.get_notification_input(
+                    group = self.grid.get_notification_input(
                         "Check (l)etter, (w)ord, or (p)uzzle?", limit=1)
                     scope = ''
                     if group.lower() == 'l':
                         scope = 'letter'
-                        grid.check_cell(cursor.position)
+                        self.grid.check_cell(cursor.position)
                     elif group.lower() == 'w':
                         scope = 'word'
-                        grid.check_cells(cursor.current_word())
+                        self.grid.check_cells(cursor.current_word())
                     elif group.lower() == 'p':
                         scope = 'puzzle'
-                        grid.check_cells(grid.cells)
+                        self.grid.check_cells(self.grid.cells)
 
                     if scope:
-                        grid.send_notification("Checked {scope} for errors.".
-                                               format(scope=scope))
+                        self.grid.send_notification(
+                            "Checked {scope} for errors.".format(scope=scope))
                     else:
-                        grid.send_notification("No valid input entered.")
+                        self.grid.send_notification("No valid input entered.")
 
                     old_word = []
 
@@ -640,40 +646,39 @@ class Solver: # pylint: disable=too-few-public-methods
 
                 # ctrl-x
                 elif keypress == chr(24):
-                    confirm = grid.confirm_clear()
+                    confirm = self.grid.confirm_clear()
                     if confirm:
-                        grid.send_notification("Puzzle cleared.")
-                        for pos in grid.cells:
-                            cell = grid.cells.get(pos)
+                        self.grid.send_notification("Puzzle cleared.")
+                        for pos in self.grid.cells:
+                            cell = self.grid.cells.get(pos)
                             if cell.is_letter:
                                 cell.clear()
-                                grid.draw_cell(pos)
+                                self.grid.draw_cell(pos)
                         old_word = []
                         modified_since_save = True
                     else:
-                        grid.send_notification("Clear command canceled.")
-
+                        self.grid.send_notification("Clear command canceled.")
 
                 # ctrl-r
                 elif keypress == chr(18):
-                    group = grid.get_notification_input(
+                    group = self.grid.get_notification_input(
                         "Reveal (l)etter, (w)ord, or (p)uzzle?", limit=1)
                     scope = ''
                     if group.lower() == 'l':
                         scope = 'letter'
-                        grid.reveal_cell(cursor.position)
+                        self.grid.reveal_cell(cursor.position)
                     elif group.lower() == 'w':
                         scope = 'word'
-                        grid.reveal_cells(cursor.current_word())
+                        self.grid.reveal_cells(cursor.current_word())
                     elif group.lower() == 'p':
                         scope = 'puzzle'
-                        grid.reveal_cells(grid.cells)
+                        self.grid.reveal_cells(self.grid.cells)
 
                     if scope:
-                        grid.send_notification("Revealed answers for {scope}.".
-                                               format(scope=scope))
+                        self.grid.send_notification(
+                            "Revealed answers for {scope}.".format(scope=scope))
                     else:
-                        grid.send_notification("No valid input entered.")
+                        self.grid.send_notification("No valid input entered.")
 
                     old_word = []
 
@@ -739,13 +744,13 @@ class Solver: # pylint: disable=too-few-public-methods
                 elif keypress in ['}', ']']:
                     cursor.advance_perpendicular()
                     if (keypress == '}' and blank_cells_remaining):
-                        while not grid.cells.get(cursor.position).is_blankish:
+                        while not self.grid.cells.get(cursor.position).is_blankish:
                             cursor.advance_perpendicular()
 
                 elif keypress in ['{', '[']:
                     cursor.retreat_perpendicular()
                     if (keypress == '{' and blank_cells_remaining):
-                        while not grid.cells.get(cursor.position).is_blankish:
+                        while not self.grid.cells.get(cursor.position).is_blankish:
                             cursor.retreat_perpendicular()
 
         print(term.exit_fullscreen())
