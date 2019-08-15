@@ -58,13 +58,13 @@ class Cursor:
             self.position = self.move_up()
 
     def advance_perpendicular(self):
-        """ move forward along the oposite access as our orientation """
+        """ move forward along the opposite axis of our orientation """
         self.switch_direction()
         self.advance()
         self.switch_direction()
 
     def retreat_perpendicular(self):
-        """ move backward along the oposite access as our orientation """
+        """ move backward along the opposite axis of our orientation """
         self.switch_direction()
         self.retreat()
         self.switch_direction()
