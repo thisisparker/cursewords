@@ -710,7 +710,7 @@ def main():
     grid = Grid(grid_x, grid_y, term)
     grid.load(puzfile)
 
-    puzzle_width = 4 * grid.column_count
+    puzzle_width = max(4 * grid.column_count, 40)
     puzzle_height = 2 * grid.row_count
 
     min_width = (puzzle_width
