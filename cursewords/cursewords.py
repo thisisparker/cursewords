@@ -836,7 +836,7 @@ def main():
             if not puzzle_complete and all(grid.cells.get(pos).is_correct()
                     for pos in grid.cells):
                 puzzle_complete = True
-                with term.location(x=grid_x, y=2):
+                with term.location(**info_location):
                     echo(term.reverse("You've completed the puzzle!") + term.clear_eol)
                 timer.show_time()
                 timer.active = False
