@@ -13,6 +13,10 @@ import puz
 from blessed import Terminal
 
 from . import chars
+from . import config
+
+
+CONFIG_FNAME = 'cursewords.toml'
 
 
 class Cell:
@@ -694,8 +698,9 @@ def main():
     parser.add_argument('--version', action='version', version=version)
 
     args = parser.parse_args()
+    cfg = config.Config(CONFIG_FNAME, override_args=args)
     filename = args.filename
-    downs_only = args.downs_only
+    downs_only = cfg.downs_only
 
     try:
         puzfile = puz.read(filename)
@@ -733,7 +738,7 @@ def main():
     if necessary_resize:
         exit_text = textwrap.dedent("""\
         This puzzle is {} columns wide and {} rows tall.
-        The terminal window must be {} to properly display 
+        The terminal window must be {} to properly display
         it.""".format(
             grid.column_count, grid.row_count,
             ' and '.join(necessary_resize)))
@@ -853,7 +858,7 @@ def main():
                 wrapped_clue = [line + term.clear_eol for line in wrapped_clue]
 
                 # This is fun: since we're in raw mode, \n isn't sufficient to
-                # return the printing location to the first column. If you 
+                # return the printing location to the first column. If you
                 # don't also have \r,
                 # it
                 #    prints
