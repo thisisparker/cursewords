@@ -63,6 +63,7 @@ class ConfigNamespace:
     You won't use this directly. Access values with attribute paths of the
     Config instance.
     """
+
     def __init__(self):
         # A key is a str. A value is either a raw value or a ConfigNamespace
         # instance.
@@ -73,7 +74,7 @@ class ConfigNamespace:
         dot_i = path.find('.')
         if dot_i != -1:
             k = path[:dot_i]
-            rest = path[dot_i+1:]
+            rest = path[dot_i + 1:]
             if k not in self._dict:
                 self._dict[k] = ConfigNamespace()
             self._dict[k]._set(rest, value)
