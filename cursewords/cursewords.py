@@ -3,6 +3,7 @@
 import argparse
 import itertools
 import os
+import random
 import sys
 import time
 import textwrap
@@ -66,10 +67,12 @@ class Grid:
         self.term = term
 
         self.notification_area = (term.height - 2, self.grid_x)
+        self.twinkle_delay = 0.12
 
     def load(self, puzfile):
         self.puzfile = puzfile
         self.cells = {}
+        self.twinkles = {}
         self.row_count = puzfile.height
         self.column_count = puzfile.width
 
@@ -409,6 +412,47 @@ class Grid:
 
     def clear_notification_area(self):
         print(self.term.move(*self.notification_area) + self.term.clear_eol)
+
+    def draw_twinkle(self, pos, frame):
+        # 0th char is vline, will always reset square sides in last frame
+        twinkle_chars = chars.vline + '/-\\'
+        twinkle_c = twinkle_chars[frame % len(twinkle_chars)]
+        term_y, term_x = self.to_term(pos)
+        print(self.term.move(term_y, term_x - 2) + twinkle_c
+              + self.term.move(term_y, term_x + 2) + twinkle_c)
+
+    def set_twinkle_timer(self, force=False):
+        if force or getattr(self, 'twinkle_timer', None) is None:
+            self.twinkle_timer = threading.Timer(
+                self.twinkle_delay, self.animate_twinkles)
+            self.twinkle_timer.daemon = True
+            self.twinkle_timer.start()
+
+    def start_twinkle(self, pos, duration=None):
+        if duration is None:
+            duration = int(5 / self.twinkle_delay)
+        self.twinkles[pos] = duration
+        self.set_twinkle_timer()
+
+    def animate_twinkles(self):
+        dead_twinkles = []
+        for pos in self.twinkles:
+            self.twinkles[pos] -= 1
+            self.draw_twinkle(pos, self.twinkles[pos])
+            if self.twinkles[pos] == 0:
+                dead_twinkles.append(pos)
+        for pos in dead_twinkles:
+            del self.twinkles[pos]
+
+        if self.twinkles:
+            self.set_twinkle_timer(force=True)
+        else:
+            self.twinkle_timer = None
+
+    def clear_twinkles(self):
+        for pos in self.twinkles:
+            self.draw_twinkle(pos, 0)
+        self.twinkles = {}
 
 
 class Cursor:
@@ -850,7 +894,7 @@ def main():
                 for pos in cursor.current_word():
                     grid.draw_highlighted_cell(pos)
 
-            # Draw the clue for the new word:
+                # Draw the clue for the new word:
                 if cursor.direction == "across":
                     num_index = grid.across_words.index(
                         cursor.current_word())
@@ -924,6 +968,7 @@ def main():
                 if timer.is_running:
                     timer.pause()
                     grid.draw()
+                    grid.clear_twinkles()
 
                     with term.location(**info_location):
                         print('\r\n'.join(['PUZZLE PAUSED' + term.clear_eol,
@@ -959,6 +1004,12 @@ def main():
                         old_word = []
                 else:
                     grid.send_notification("Reset command canceled.")
+
+            elif keypress == chr(1):
+                # Secret twinkle demo: ^A twinkles a random square
+                pos = random.choice(list(grid.cells.keys()))
+                grid.send_notification("Twinkle " + repr(pos))
+                grid.start_twinkle(pos)
 
             # If the puzzle is paused, skip all the rest of the logic
             elif puzzle_paused:
