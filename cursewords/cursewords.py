@@ -1,3 +1,15 @@
+# pylint: disable=invalid-name
+# pylint: disable=missing-docstring
+# pylint: disable=too-many-lines
+# pylint: disable=too-many-instance-attributes
+# pylint: disable=too-many-branches
+# pylint: disable=too-many-statements
+# pylint: disable=too-many-arguments
+# pylint: disable=too-many-boolean-expressions
+# pylint: disable=too-many-locals
+# pylint: disable=too-many-public-methods
+# pylint: disable=bare-except
+
 #! /usr/bin/env python3
 
 import argparse
@@ -265,10 +277,10 @@ class Grid:
 
 
     def make_row(self, leftmost, middle, divider, rightmost):
-        chars = ''
+        row = ''
         for col in range(1, self.column_count * 4):
-            chars += divider if col % 4 == 0 else middle
-        return leftmost + chars + rightmost
+            row += divider if col % 4 == 0 else middle
+        return leftmost + row + rightmost
 
     def get_top_row(self):
         return self.make_row(chars.ulcorner, chars.hline, chars.ttee, chars.urcorner)
@@ -802,7 +814,7 @@ def main():
                 wrapped_clue = [line + term.clear_eol for line in wrapped_clue]
 
                 # This is fun: since we're in raw mode, \n isn't sufficient to
-                # return the printing location to the first column. If you 
+                # return the printing location to the first column. If you
                 # don't also have \r,
                 # it
                 #    prints
@@ -817,7 +829,6 @@ def main():
                 grid.draw_highlighted_cell(old_position)
 
             current_cell = grid.cells.get(cursor.position)
-            value = current_cell.entry
             grid.draw_cursor_cell(cursor.position)
 
             # Check if the puzzle is complete!
