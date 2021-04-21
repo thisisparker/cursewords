@@ -289,7 +289,7 @@ class Grid:
         if cell.circled:
             value = value.translate(chars.encircle)
 
-        if cell.marked_wrong:
+        if cell.marked_wrong and not cell.revealed:
             value = self.term.red(value.lower())
         else:
             value = self.term.bold(value)
