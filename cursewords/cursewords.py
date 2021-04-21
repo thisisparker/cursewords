@@ -269,6 +269,7 @@ class Grid:
         if cell.is_blankish() or not cell.is_correct():
             cell.entry = cell.solution
             cell.revealed = True
+            cell.marked_wrong = False
             self.draw_cell(pos)
 
     def reveal_cells(self, pos_list):
@@ -343,12 +344,12 @@ class Grid:
 
     def draw_highlighted_cell(self, position):
         value, markup = self.compile_cell(position)
-        value = self.term.underline(value) + markup
+        value = self.term.bright_white(self.term.underline(value) + markup)
         print(self.term.move(*self.to_term(position)) + value)
 
     def draw_cursor_cell(self, position):
         value, markup = self.compile_cell(position)
-        value = self.term.reverse(value) + markup
+        value = self.term.bright_white(self.term.reverse(value) + markup)
         print(self.term.move(*self.to_term(position)) + value)
 
     def get_notification_input(self, message, timeout=5, chars=3,
@@ -696,6 +697,9 @@ def main():
     args = parser.parse_args()
     filename = args.filename
     downs_only = args.downs_only
+
+    if filename == '-':
+        filename = sys.stdin.read().strip()
 
     try:
         puzfile = puz.read(filename)
