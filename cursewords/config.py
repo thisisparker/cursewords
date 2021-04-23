@@ -180,7 +180,7 @@ class ConfigParser:
                 help=help)
             self._argparser.add_argument(
                 '--no-' + name,
-                action='store_false',
+                action='store_true',
                 required=False,
                 help=help)
         else:
@@ -228,9 +228,18 @@ class ConfigParser:
 
             for param in self._params:
                 if param.is_flag:
-                    if 'no_' + param.name in args_dict:
-                        args_dict[param.name] = False
-                        del args_dict['no_' + param.name]
+                    flag_attr_name = param.name.replace('-', '_')
+                    inverse_flag_attr_name = 'no_' + flag_attr_name
+
+                    if args_dict[inverse_flag_attr_name]:
+                        # If --no-xxx, set value to False.
+                        args_dict[flag_attr_name] = False
+                    elif not args_dict[flag_attr_name]:
+                        # If neither --no-xxx nor --xxx, delete the default
+                        # False value.
+                        del args_dict[flag_attr_name]
+                    # Delete --no-xxx regardless.
+                    del args_dict[inverse_flag_attr_name]
 
             namespace._merge(args_dict)
 

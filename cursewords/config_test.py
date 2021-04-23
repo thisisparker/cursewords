@@ -8,6 +8,8 @@ CONFIG_FNAME = 'myapp.toml'
 CONFIG_TEXT = """
 name = "Mr. Chips"
 timeout_seconds = 60
+verbose_log = false
+enable_feature = true
 
 [network]
 ip_addr = "10.0.0.1"
@@ -42,6 +44,7 @@ def make_config_parser(config_dirs, config_fname=CONFIG_FNAME):
     cfgparser.add_parameter('timeout-seconds', type=int)
     cfgparser.add_parameter('network.ip-addr', type=str)
     cfgparser.add_parameter('verbose-log', type=bool)
+    cfgparser.add_parameter('enable-feature', type=bool)
     return cfgparser
 
 
@@ -97,3 +100,24 @@ def test_dotpath_args_overrides_file(tmpdir):
     cfgparser = make_config_parser(make_config(tmpdir))
     cfg = cfgparser.parse_cfg(['--network.ip-addr=192.168.0.1'])
     assert cfg.network.ip_addr == '192.168.0.1'
+
+
+def test_bool_from_file(tmpdir):
+    cfgparser = make_config_parser(make_config(tmpdir))
+    cfg = cfgparser.parse_cfg([])
+    assert not cfg.verbose_log
+    assert cfg.enable_feature
+
+
+def test_flag_positive(tmpdir):
+    cfgparser = make_config_parser(make_config(tmpdir))
+    cfg = cfgparser.parse_cfg(['--verbose-log'])
+    assert cfg.verbose_log
+    assert cfg.enable_feature
+
+
+def test_flag_negative(tmpdir):
+    cfgparser = make_config_parser(make_config(tmpdir))
+    cfg = cfgparser.parse_cfg(['--no-enable-feature'])
+    assert not cfg.verbose_log
+    assert not cfg.enable_feature
