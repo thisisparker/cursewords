@@ -1,6 +1,5 @@
 #! /usr/bin/env python3
 
-import argparse
 import itertools
 import os
 import random
@@ -768,10 +767,12 @@ def main():
     with open(version_file) as f:
         version = f.read().strip()
 
-    parser = argparse.ArgumentParser(
+    cfgparser = config.ConfigParser(
+        CONFIG_FNAME,
         prog='cursewords',
         description="""A terminal-based crossword puzzle solving interface.""")
 
+    parser = cfgparser.get_argument_parser()
     parser.add_argument(
         'filename', metavar='PUZfile',
         help="""path of puzzle file in the AcrossLite .puz format""")
@@ -782,9 +783,8 @@ def main():
         '--version', action='version', version=version)
 
     args = parser.parse_args()
-    cfg = config.Config(CONFIG_FNAME, override_args=args)
     filename = args.filename
-    downs_only = cfg.downs_only
+    downs_only = args.downs_only
 
     try:
         puzfile = puz.read(filename)

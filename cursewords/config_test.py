@@ -1,4 +1,3 @@
-import argparse
 import os
 
 from . import config
@@ -35,37 +34,41 @@ def make_config(tmpdir, in_cwd=True):
     return dirs
 
 
-def make_args(args):
-    argparser = argparse.ArgumentParser()
-    argparser.add_argument('--name', type=str)
-    argparser.add_argument('--timeout-seconds', type=int)
-    argparser.add_argument('--network.ip-addr', type=str)
-    return argparser.parse_args(args)
+def make_config_parser(config_dirs, config_fname=CONFIG_FNAME):
+    cfgparser = config.ConfigParser(
+        config_fname=config_fname,
+        config_dirs=config_dirs)
+    cfgparser.add_parameter('name', type=str)
+    cfgparser.add_parameter('timeout-seconds', type=int)
+    cfgparser.add_parameter('network.ip-addr', type=str)
+    cfgparser.add_parameter('verbose-log', type=bool)
+    return cfgparser
 
 
 def test_config_uses_args(tmpdir):
-    config_dirs = make_temp_dirs(tmpdir)
-    args = make_args(['--timeout-seconds=999'])
-    cfg = config.Config(
-        CONFIG_FNAME, override_args=args, config_dirs=config_dirs)
+    cfgparser = make_config_parser(make_temp_dirs(tmpdir))
+    cfg = cfgparser.parse_cfg(['--timeout-seconds=999'])
     assert cfg.timeout_seconds == 999
 
 
 def test_config_uses_file(tmpdir):
-    config_dirs = make_config(tmpdir)
-    args = make_args([])
-    cfg = config.Config(
-        CONFIG_FNAME, override_args=args, config_dirs=config_dirs)
+    cfgparser = make_config_parser(make_config(tmpdir))
+    cfg = cfgparser.parse_cfg([])
     assert cfg.timeout_seconds == 60
+
+
+def test_arg_overrides_file(tmpdir):
+    cfgparser = make_config_parser(make_config(tmpdir))
+    cfg = cfgparser.parse_cfg(['--timeout-seconds=999'])
+    assert cfg.timeout_seconds == 999
 
 
 def test_config_honors_lookup_path(tmpdir):
     config_dirs = make_config(tmpdir, in_cwd=False)
+    cfgparser = make_config_parser(config_dirs)
     with open(os.path.join(config_dirs[0], CONFIG_FNAME), 'w') as outfh:
         outfh.write(CONFIG_TEXT_ALT)
-    args = make_args([])
-    cfg = config.Config(
-        CONFIG_FNAME, override_args=args, config_dirs=config_dirs)
+    cfg = cfgparser.parse_cfg([])
     assert cfg.timeout_seconds == 20
 
 
@@ -73,39 +76,24 @@ def test_lookup_path_supports_cwd(tmpdir):
     config_dirs = make_config(tmpdir)
     os.chdir(config_dirs[0])
     config_dirs[0] = '.'
-    args = make_args([])
-    cfg = config.Config(
-        CONFIG_FNAME, override_args=args, config_dirs=config_dirs)
+    cfgparser = make_config_parser(config_dirs)
+    cfg = cfgparser.parse_cfg([])
     assert cfg.timeout_seconds == 60
 
 
 def test_dotpath_from_arg(tmpdir):
-    config_dirs = make_temp_dirs(tmpdir)
-    args = make_args(['--network.ip-addr=192.168.0.1'])
-    cfg = config.Config(
-        CONFIG_FNAME, override_args=args, config_dirs=config_dirs)
+    cfgparser = make_config_parser(make_temp_dirs(tmpdir))
+    cfg = cfgparser.parse_cfg(['--network.ip-addr=192.168.0.1'])
     assert cfg.network.ip_addr == '192.168.0.1'
 
 
 def test_dotpath_from_file(tmpdir):
-    config_dirs = make_config(tmpdir)
-    args = make_args([])
-    cfg = config.Config(
-        CONFIG_FNAME, override_args=args, config_dirs=config_dirs)
+    cfgparser = make_config_parser(make_config(tmpdir))
+    cfg = cfgparser.parse_cfg([])
     assert cfg.network.ip_addr == '10.0.0.1'
 
 
-def test_arg_overrides_file(tmpdir):
-    config_dirs = make_config(tmpdir)
-    args = make_args(['--timeout-seconds=15'])
-    cfg = config.Config(
-        CONFIG_FNAME, override_args=args, config_dirs=config_dirs)
-    assert cfg.timeout_seconds == 15
-
-
-def test_dotpath_arg_overrides_file(tmpdir):
-    config_dirs = make_config(tmpdir)
-    args = make_args(['--network.ip-addr=192.168.0.1'])
-    cfg = config.Config(
-        CONFIG_FNAME, override_args=args, config_dirs=config_dirs)
+def test_dotpath_args_overrides_file(tmpdir):
+    cfgparser = make_config_parser(make_config(tmpdir))
+    cfg = cfgparser.parse_cfg(['--network.ip-addr=192.168.0.1'])
     assert cfg.network.ip_addr == '192.168.0.1'
