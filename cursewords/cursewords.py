@@ -67,7 +67,7 @@ class Grid:
         self.term = term
 
         self.notification_area = (term.height - 2, self.grid_x)
-        self.twinkle_delay = 0.12
+        self.twinkle_delay = 0.1
 
     def load(self, puzfile):
         self.puzfile = puzfile
@@ -118,6 +118,16 @@ class Grid:
         self.down_words_grouped = sorted(
             self.down_words,
             key=lambda word: (word[0][1], word[0][0]))
+
+        self.word_index = {}
+        for word_coords in (self.across_words + self.down_words):
+            word_text = ''.join(
+                self.cells[pos].solution for pos in word_coords).lower()
+            if word_text not in self.word_index:
+                self.word_index[word_text] = []
+            # word_index maps word text to a list of coordinate sets. This
+            # supports the edge case where a puzzle contains dupes.
+            self.word_index[word_text].append(word_coords)
 
         num = self.puzfile.clue_numbering()
         self.across_clues = [word['clue'] for word in num.across]
@@ -453,6 +463,24 @@ class Grid:
         for pos in self.twinkles:
             self.draw_twinkle(pos, 0)
         self.twinkles = {}
+
+    def twinkle_unsolved_word(self, txt, duration=None):
+        """Twinkle an unsolved word via its lowercase text, if any.
+
+        In the edge case where a word appears more than once in the puzzle
+        unsolved, only one unsolved instance is twinkled.
+
+        Returns:
+            True if a matching unsolved word was found and twinkled.
+        """
+        if txt in self.word_index:
+            for word_coords in self.word_index[txt]:
+                if all(self.cells[pos].is_correct() for pos in word_coords):
+                    continue
+                for pos in word_coords:
+                    self.start_twinkle(pos, duration=duration)
+                return True
+        return False
 
 
 class Cursor:
@@ -1006,10 +1034,11 @@ def main():
                     grid.send_notification("Reset command canceled.")
 
             elif keypress == chr(1):
-                # Secret twinkle demo: ^A twinkles a random square
-                pos = random.choice(list(grid.cells.keys()))
-                grid.send_notification("Twinkle " + repr(pos))
-                grid.start_twinkle(pos)
+                # Secret twinkle demo: ^A twinkles (and spoils) a random word.
+                # Will spoil but not twinkle if the word is solved.
+                word_txt = random.choice(list(grid.word_index.keys()))
+                grid.send_notification("Twinkled " + word_txt)
+                grid.twinkle_unsolved_word(word_txt)
 
             # If the puzzle is paused, skip all the rest of the logic
             elif puzzle_paused:
