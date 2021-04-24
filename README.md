@@ -94,24 +94,24 @@ You can generate a new OAuth token at any time by visiting: [https://twitchapps.
 
 ### Troubleshooting
 
-**The bot account does not join the room when I run `cursewords`.**
+**The bot account does not join the room when I run `cursewords`.**<br>
 Verify that configuration parameters are set correctly, and that the configuration file is named `cursewords.toml` and is in either the current working directory or in: `$HOME/.config/`
 
 Occasionally `cursewords` will simply fail to connect to Twitch. Quit (Ctrl-Q) and re-run `cursewords` to try again.
 
-**The bot does not animate a correct guess posted by a user.**
+**The bot does not animate a correct guess posted by a user.**<br>
 Check that the `enable_guessing` configuration parameter is set to `true` (`--twitch.enable-guessing` on the command line). The bot will invite users to post guesses to the chat when it joins if this feature is enabled correctly.
 
 Check that the word is not already solved on the board. The guessing feature will only animate squares of a correct guess if the word is unsolved, incompletely solved, or solved incorrectly.
 
 A guess can be run together (`DOUBLERAINBOW`) or separated by spaces (`DOUBLE RAINBOW`), and case doesn't matter (`double raIN bOW`). It must start and end at a "word boundary:" `corporeous`, `oreodontoid`, or `choreo` will not match `oreo`. Punctuation cannot appear in the middle of the guess: `o-r-e-o` will not match.
 
-**The bot never replies to the `!clue` command.**
+**The bot never replies to the `!clue` command.**<br>
 Check that the `enable_clue` configuration parameter is set to `true` (`--twitch.enable-clue` on the command line). The bot will invite users to use the `!clue` command when it joins if this feature is enabled correctly.
 
 Check that `!clue` (an exclamation point followed by the word "clue") is the first word in the chat message.
 
-**The bot replies to the `!clue` command sometimes, but not always.**
+**The bot replies to the `!clue` command sometimes, but not always.**<br>
 To prevent a user from cluttering the chat with clues, each user is restricted to one `!clue` per period of time. This period is configurable using the `clue_cooldown_per_person` parameter (`--twitch.clue-cooldown-per-person` on the command line). The bot will ignore clue commands from a user within this time.
 
 If a single user requests the same clue twice in succession and the bot hasn't spoken since the previous time, Twitch will prevent the bot from posting the same message twice in a row.
