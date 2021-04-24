@@ -24,13 +24,8 @@ LOG_FNAME = 'cursewords.log'
 class Cell:
     def __init__(self, solution, entry=None):
         self.solution = solution
-
         self.number = None
-        if entry:
-            self.entry = entry
-        else:
-            self.entry = "-"
-
+        self.entry = entry or "-"
         self.marked_wrong = False
         self.corrected = False
         self.revealed = False
@@ -158,8 +153,6 @@ class Grid:
         else:
             self.start_time, self.timer_active = 0, 1
 
-        return None
-
     def draw(self):
         top_row = self.get_top_row()
         bottom_row = self.get_bottom_row()
@@ -181,8 +174,6 @@ class Grid:
         print(self.term.move(self.grid_y + self.row_count * 2, self.grid_x)
               + self.term.dim(bottom_row))
 
-        return None
-
     def number(self):
         numbered_squares = []
         for word in self.across_words:
@@ -197,8 +188,6 @@ class Grid:
         for number, square in enumerate(numbered_squares, 1):
             self.cells.get(square).number = number
 
-        return None
-
     def fill(self):
         for position in self.cells:
             y_coord, x_coord = self.to_term(position)
@@ -210,44 +199,29 @@ class Grid:
                       self.term.dim(chars.squareblock))
 
             if cell.number:
-                small = small_nums(cell.number)
+                small = str(cell.number).translate(chars.small_nums)
                 x_pos = x_coord - 1
                 print(self.term.move(y_coord - 1, x_pos) + small)
 
-        return None
-
     def confirm_quit(self, modified_since_save):
-        confirmed = True
         if modified_since_save:
             confirmation = self.get_notification_input(
                 "Quit without saving? (y/n)",
                 chars=1, blocking=True, timeout=5)
-            if confirmation.lower() == 'y':
-                confirmed = True
-            else:
-                confirmed = False
-
-        return confirmed
+            return confirmation.lower() == 'y'
+        return True
 
     def confirm_clear(self):
         confirmation = self.get_notification_input(
             "Clear puzzle? (y/n)",
             chars=1, blocking=True, timeout=5)
-        if confirmation.lower() == 'y':
-            confirmed = True
-        else:
-            confirmed = False
-        return confirmed
+        return confirmation.lower() == 'y'
 
     def confirm_reset(self):
         confirmation = self.get_notification_input(
             "Reset puzzle? (y/n)",
             chars=1, blocking=True, timeout=5)
-        if confirmation.lower() == 'y':
-            confirmed = True
-        else:
-            confirmed = False
-        return confirmed
+        return confirmation.lower() == 'y'
 
     def save(self, filename):
         fill = ''
@@ -279,11 +253,9 @@ class Grid:
                 if cell.circled:
                     cell_md += 128
                 md.append(cell_md)
-
             self.puzfile.markup().markup = md
 
         self.puzfile.save(filename)
-
         self.send_notification("Current puzzle state saved.")
 
     def reveal_cell(self, pos):
@@ -314,12 +286,10 @@ class Grid:
         return (term_y, term_x)
 
     def make_row(self, leftmost, middle, divider, rightmost):
-        row = leftmost
+        chars = ''
         for col in range(1, self.column_count * 4):
-            new_char = divider if col % 4 == 0 else middle
-            row += new_char
-        row += rightmost
-        return row
+            chars += divider if col % 4 == 0 else middle
+        return leftmost + chars + rightmost
 
     def get_top_row(self):
         return self.make_row(chars.ulcorner, chars.hline,
@@ -338,15 +308,12 @@ class Grid:
 
     def compile_cell(self, position):
         cell = self.cells.get(position)
-        if cell.is_blank():
-            value = " "
-        else:
-            value = cell.entry
+        value = " " if cell.is_blank() else cell.entry
 
         if cell.circled:
-            value = encircle(value)
+            value = value.translate(chars.encircle)
 
-        if cell.marked_wrong:
+        if cell.marked_wrong and not cell.revealed:
             value = self.term.red(value.lower())
         else:
             value = self.term.bold(value)
@@ -756,25 +723,6 @@ class Timer(threading.Thread):
         self.starting_seconds = self.time_passed
         self.start_time = time.time()
         self.is_running = True
-
-
-def small_nums(number):
-    small_num = ""
-    num_dict = {"1": "₁", "2": "₂", "3": "₃", "4": "₄", "5": "₅",
-                "6": "₆", "7": "₇", "8": "₈", "9": "₉", "0": "₀"}
-    for digit in str(number):
-        small_num += num_dict[digit]
-
-    return small_num
-
-
-def encircle(letter):
-    circle_dict = {"A": "Ⓐ", "B": "Ⓑ", "C": "Ⓒ", "D": "Ⓓ", "E": "Ⓔ", "F": "Ⓕ",
-                   "G": "Ⓖ", "H": "Ⓗ", "I": "Ⓘ", "J": "Ⓙ", "K": "Ⓚ", "L": "Ⓛ",
-                   "M": "Ⓜ", "N": "Ⓝ", "O": "Ⓞ", "P": "Ⓟ", "Q": "Ⓠ", "R": "Ⓡ",
-                   "S": "Ⓢ", "T": "Ⓣ", "U": "Ⓤ", "V": "Ⓥ", "W": "Ⓦ", "X": "Ⓧ",
-                   "Y": "Ⓨ", "Z": "Ⓩ", " ": "◯"}
-    return circle_dict[letter]
 
 
 def main():
