@@ -1,6 +1,6 @@
 import asyncio
 import logging
-import os
+import random
 import re
 import threading
 import time
@@ -15,18 +15,30 @@ TWITCH_URI = 'wss://irc-ws.chat.twitch.tv:443'
 MESSAGE_COOLDOWN_SECS = 1
 
 
+HELLOS = [
+    'Hello!', 'Bonjour!', '¡Hola!', 'Nǐ hǎo.', 'Konnichiwa!', 'Hallo!',
+    'Namaste!', 'Shalom!', 'Greetings, puzzle people!'
+]
+
+GOODBYES = [
+    'gg!', 'Well done!', 'And that\'s the game!', 'Let\'s do another one!',
+    'Fantastic work!', 'Oreos for all!', 'Mazel tov!'
+]
+
+
 class TwitchBot(threading.Thread):
     def __init__(
             self,
             grid,
+            enable,
             nickname,
             channel,
             oauth_token,
             enable_guessing,
             enable_clue,
-            clue_cooldown_per_person,
-            log_to_file):
+            clue_cooldown_per_person):
         self.grid = grid
+        self.enable = enable
         self.nickname = nickname
         self.channel = channel
         self.oauth_token = oauth_token
@@ -52,18 +64,13 @@ class TwitchBot(threading.Thread):
 
         self.successful_guessing_users = set()
 
-        if log_to_file:
-            logging.basicConfig(
-                filename='cursewords.log',
-                encoding='utf-8',
-                level=logging.INFO)
-        else:
-            logging.basicConfig(stream=os.devnull)
+        self.last_clue_timestamp_per_user = {}
 
     def run(self):
         # If no Twitch features are enabled, don't bother connecting to Twitch.
-        if (not self.enable_guessing and
-                not self.enable_clue):
+        if (not self.enable or
+            (not self.enable_guessing and
+                not self.enable_clue)):
             return
 
         self.running = True
@@ -136,8 +143,18 @@ class TwitchBot(threading.Thread):
         await self.websocket.send('PONG :tmi.twitch.tv\n')
 
     async def startup(self):
-        # TODO: better start-up message announcing enabled features
-        await self.post_message('Hello I\'m the bot!')
+        hello = random.choice(HELLOS)
+        if self.enable_clue:
+            clue_msg = (
+                ' To request a clue, say !clue followed by a clue name, '
+                'like: !clue 22d')
+        else:
+            clue_msg = ''
+        if self.enable_guessing:
+            guessing_msg = ' Post your guesses to the chat!'
+        else:
+            guessing_msg = ''
+        await self.post_message(f'{hello}{guessing_msg}{clue_msg}')
 
     async def handle_join(self, unused_channel_name):
         self.grid.send_notification(
@@ -159,6 +176,14 @@ class TwitchBot(threading.Thread):
             await self.do_guesses(user, msg)
 
     async def do_clue(self, user, msg):
+        if (self.clue_cooldown_per_person and
+            user in self.last_clue_timestamp_per_user and
+            (time.monotonic() - self.last_clue_timestamp_per_user[user]
+                < self.clue_cooldown_per_person)):
+            return
+
+        self.last_clue_timestamp_per_user[user] = time.monotonic()
+
         m = re.match(r'\s*(?P<num>\d+)\s*(?P<dir>[aAdD])', msg)
         if not m:
             m = re.match(r'\s*(?P<dir>[aAdD])\D*\s*(?P<num>\d+)', msg)
@@ -171,8 +196,6 @@ class TwitchBot(threading.Thread):
                 await self.post_message(f'{user} {num}{cluedir}: {clue}')
             else:
                 await self.post_message(f'{user} No clue for {num}{cluedir}')
-
-            # TODO: honor self.clue_cooldown_per_person
         else:
             await self.post_message(
                 f'{user} I didn\'t understand. Try something like: !clue 22d')
@@ -214,8 +237,10 @@ class TwitchBot(threading.Thread):
         pass
 
     async def shutdown(self):
+        goodbye = random.choice(GOODBYES)
+        await self.post_message(f'{goodbye}')
         if self.enable_guessing and self.successful_guessing_users:
-            print('\n\n\n\n\n### Thanks to these successful solvers:\n')
+            print('\n\n\n### Thanks to these successful solvers:\n')
             for user in sorted(self.successful_guessing_users):
                 print('  ' + user)
             print('\n\n')

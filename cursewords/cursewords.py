@@ -1,6 +1,7 @@
 #! /usr/bin/env python3
 
 import itertools
+import logging
 import os
 import sys
 import time
@@ -17,6 +18,7 @@ from . import twitch
 
 
 CONFIG_FNAME = 'cursewords.toml'
+LOG_FNAME = 'cursewords.log'
 
 
 class Cell:
@@ -786,6 +788,10 @@ def main():
         prog='cursewords',
         description='A terminal-based crossword puzzle solving interface.')
     cfgparser.add_parameter(
+        'twitch.enable',
+        type=bool,
+        help='Enables Twitch integration')
+    cfgparser.add_parameter(
         'twitch.nickname',
         help='The Twitch bot account name')
     cfgparser.add_parameter(
@@ -810,7 +816,7 @@ def main():
     cfgparser.add_parameter(
         'log_to_file',
         type=bool,
-        help='Log error messages to a file named cursewords.log')
+        help='Log messages to a file named cursewords.log')
 
     parser = cfgparser.get_argument_parser()
     parser.add_argument(
@@ -826,6 +832,14 @@ def main():
     args = parser.parse_args()
     filename = args.filename
     downs_only = args.downs_only
+
+    if cfg.log_to_file:
+        logging.basicConfig(
+            filename=LOG_FNAME,
+            encoding='utf-8',
+            level=logging.INFO)
+    else:
+        logging.basicConfig(stream=os.devnull)
 
     try:
         puzfile = puz.read(filename)
@@ -952,13 +966,13 @@ def main():
 
     twitchbot = twitch.TwitchBot(
         grid,
+        enable=cfg.twitch.enable,
         nickname=cfg.twitch.nickname,
         channel=cfg.twitch.channel,
         oauth_token=cfg.twitch.oauth_token,
         enable_guessing=cfg.twitch.enable_guessing,
         enable_clue=cfg.twitch.enable_clue,
-        clue_cooldown_per_person=cfg.twitch.clue_cooldown_per_person,
-        log_to_file=cfg.log_to_file)
+        clue_cooldown_per_person=cfg.twitch.clue_cooldown_per_person)
     twitchbot.start()
 
     info_location = {'x': grid_x, 'y': grid_y + 2 * grid.row_count + 2}

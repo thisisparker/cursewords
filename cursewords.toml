@@ -6,7 +6,19 @@
 # Most options can be overridden on the command line, like so:
 #    cursewords --twitch.nickname=mybot --twitch.enable-clue=false puzfile.puz
 
+# Log messages to a file named cursewords.log.
+log_to_file = false
+
 [twitch]
+# Set this to "true" to enable Twitch support.
+enable = false
+
+# Viewers can guess words in the puzzle and cause things to happen.
+enable_guessing = true
+
+# Viewers can type "!clue 22d" to have the bot post a clue to the chat room.
+enable_clue = true
+
 # The Twitch account that Cursewords should use to connect.
 nickname = "..."
 
@@ -27,12 +39,6 @@ channel = "..."
 # go to Settings, then select the Connections tab. Locate the "Twitch
 # Developer" connection then click Disconnect.
 oauth_token = "oauth:..."
-
-# Viewers can guess words in the puzzle and cause things to happen.
-enable_guessing = true
-
-# Viewers can type "!clue 22d" to have the bot post a clue to the chat room.
-enable_clue = true
 
 # If enable_clue is true, the number of seconds a given user must wait between
 # clue requests.
