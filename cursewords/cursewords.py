@@ -2,7 +2,6 @@
 
 import itertools
 import os
-import random
 import sys
 import time
 import textwrap
@@ -481,6 +480,20 @@ class Grid:
                     self.start_twinkle(pos, duration=duration)
                 return True
         return False
+
+    def get_clue_by_number(self, num, is_across=True):
+        if is_across:
+            word_list = self.across_words
+            clue_list = self.across_clues
+        else:
+            word_list = self.down_words_grouped
+            clue_list = self.down_clues
+
+        for i, word in enumerate(word_list):
+            if self.cells[word[0]].number == num:
+                return clue_list[i]
+
+        return None
 
 
 class Cursor:
@@ -1072,13 +1085,6 @@ def main():
                 else:
                     grid.send_notification("Reset command canceled.")
 
-            elif keypress == chr(1):
-                # Secret twinkle demo: ^A twinkles (and spoils) a random word.
-                # Will spoil but not twinkle if the word is solved.
-                word_txt = random.choice(list(grid.word_index.keys()))
-                grid.send_notification("Twinkled " + word_txt)
-                grid.twinkle_unsolved_word(word_txt)
-
             # If the puzzle is paused, skip all the rest of the logic
             elif puzzle_paused:
                 continue
@@ -1224,6 +1230,7 @@ def main():
                         cursor.retreat_perpendicular()
 
     print(term.exit_fullscreen())
+    timer.pause()
     twitchbot.running = False
     twitchbot.join()
 

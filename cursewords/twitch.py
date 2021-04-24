@@ -7,7 +7,11 @@ import time
 import websockets
 
 
+# Twitch bot secure web socket URL
 TWITCH_URI = 'wss://irc-ws.chat.twitch.tv:443'
+
+# Minimum number of seconds between posts to the chat, to avoid Twitch
+# dropping messages
 MESSAGE_COOLDOWN_SECS = 1
 
 
@@ -132,6 +136,7 @@ class TwitchBot(threading.Thread):
         await self.websocket.send('PONG :tmi.twitch.tv\n')
 
     async def startup(self):
+        # TODO: better start-up message announcing enabled features
         await self.post_message('Hello I\'m the bot!')
 
     async def handle_join(self, unused_channel_name):
@@ -160,14 +165,33 @@ class TwitchBot(threading.Thread):
         if m:
             num = m.group('num')
             cluedir = m.group('dir').upper()
-            # TODO: actual clue lookup (potentially fail)
+            clue = self.grid.get_clue_by_number(
+                int(num), is_across=(cluedir == 'A'))
+            if clue:
+                await self.post_message(f'{user} {num}{cluedir}: {clue}')
+            else:
+                await self.post_message(f'{user} No clue for {num}{cluedir}')
+
             # TODO: honor self.clue_cooldown_per_person
-            await self.post_message(f'{user} {num}{cluedir} (clue goes here)')
         else:
             await self.post_message(
                 f'{user} I didn\'t understand. Try something like: !clue 22d')
 
     def _itemize_guesses(self, msg):
+        # Search a chat message for guesses.
+        #
+        # A guess is one or more words that may or may not be separated by
+        # spaces, case ignored. A guess begins and ends at a word boundary, and
+        # does not span across punctuation.
+        #
+        # For example, if someone posts:
+        #   DOUBLE RAINBOW, maybe?
+        #
+        # These words are considered guesses:
+        #   double
+        #   doublerainbow
+        #   rainbow
+        #   maybe
         phrases = re.split(r'[^\w\s]+', msg)
         for phrase in phrases:
             words = re.split(r'\W+', phrase.strip())
