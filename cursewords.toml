@@ -36,4 +36,4 @@ enable_clue = true
 
 # If enable_clue is true, the number of seconds a given user must wait between
 # clue requests.
-clues_per_second_per_person = 10
+clue_cooldown_per_person = 10

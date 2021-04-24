@@ -1,3 +1,4 @@
 blessed==1.15.0
 puzpy==0.2.4
 pytest
+websockets

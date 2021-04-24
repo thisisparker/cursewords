@@ -14,6 +14,7 @@ from blessed import Terminal
 
 from . import chars
 from . import config
+from . import twitch
 
 
 CONFIG_FNAME = 'cursewords.toml'
@@ -770,18 +771,45 @@ def main():
     cfgparser = config.ConfigParser(
         CONFIG_FNAME,
         prog='cursewords',
-        description="""A terminal-based crossword puzzle solving interface.""")
+        description='A terminal-based crossword puzzle solving interface.')
+    cfgparser.add_parameter(
+        'twitch.nickname',
+        help='The Twitch bot account name')
+    cfgparser.add_parameter(
+        'twitch.channel',
+        help='The Twitch channel to join')
+    cfgparser.add_parameter(
+        'twitch.oauth_token',
+        help='The OAuth token to use to connect with this account')
+    cfgparser.add_parameter(
+        'twitch.enable_guessing',
+        type=bool,
+        help='Enables reacting to guesses in the Twitch chat')
+    cfgparser.add_parameter(
+        'twitch.enable_clue',
+        type=bool,
+        help='Enables the !clue command in the Twitch chat')
+    cfgparser.add_parameter(
+        'twitch.clue_cooldown_per_person',
+        default=10,
+        type=int,
+        help='Seconds a Twitch chat user must wait between !clue commands')
+    cfgparser.add_parameter(
+        'log_to_file',
+        type=bool,
+        help='Log error messages to a file named cursewords.log')
 
     parser = cfgparser.get_argument_parser()
     parser.add_argument(
         'filename', metavar='PUZfile',
-        help="""path of puzzle file in the AcrossLite .puz format""")
+        help='Path of puzzle file in the AcrossLite .puz format')
     parser.add_argument(
         '--downs-only', action='store_true',
-        help="""displays only the down clues""")
+        help='Displays only the down clues')
     parser.add_argument(
         '--version', action='version', version=version)
 
+    cfg = cfgparser.parse_cfg()
     args = parser.parse_args()
     filename = args.filename
     downs_only = args.downs_only
@@ -908,6 +936,17 @@ def main():
     timer = Timer(grid, starting_seconds=int(grid.start_time),
                   is_running=True, active=bool(int(grid.timer_active)))
     timer.start()
+
+    twitchbot = twitch.TwitchBot(
+        grid,
+        nickname=cfg.twitch.nickname,
+        channel=cfg.twitch.channel,
+        oauth_token=cfg.twitch.oauth_token,
+        enable_guessing=cfg.twitch.enable_guessing,
+        enable_clue=cfg.twitch.enable_clue,
+        clue_cooldown_per_person=cfg.twitch.clue_cooldown_per_person,
+        log_to_file=cfg.log_to_file)
+    twitchbot.start()
 
     info_location = {'x': grid_x, 'y': grid_y + 2 * grid.row_count + 2}
 
@@ -1185,6 +1224,8 @@ def main():
                         cursor.retreat_perpendicular()
 
     print(term.exit_fullscreen())
+    twitchbot.running = False
+    twitchbot.join()
 
 
 if __name__ == '__main__':
