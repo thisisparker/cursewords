@@ -195,6 +195,9 @@ class TwitchBot(threading.Thread):
                 await self.post_message(f'{user} {num}{cluedir}: {clue}')
             else:
                 await self.post_message(f'{user} No clue for {num}{cluedir}')
+                # Allow an immediate repost after an error
+                self.last_clue_timestamp_per_user[user] -= \
+                    self.clue_cooldown_per_person
         else:
             await self.post_message(
                 f'{user} I didn\'t understand. Try something like: !clue 22d')
