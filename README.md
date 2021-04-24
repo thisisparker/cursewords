@@ -58,7 +58,7 @@ Settings in TOML sections use the section name followed by a dot, as in `--twitc
 
 ## Twitch integration
 
-`cursewords` includes features for live-streaming puzzle solving on Twitch. You can connect `cursewords` to the channel's chat room using a bot account or your own account. Features include:
+`cursewords` includes features for live-streaming puzzle solving on Twitch with audience interactivity. You can connect `cursewords` to the channel's chat room using a bot account or your own account. Features include:
 
 * **Guessing**
   * When someone posts a message to the chat containing a solution to an unsolved clue, the board will highlight the squares. This signals to the solver that someone has made a correct guess, and rewards viewers for guessing.
@@ -114,4 +114,4 @@ Check that `!clue` (an exclamation point followed by the word "clue") is the fir
 **The bot replies to the `!clue` command sometimes, but not always.**
 To prevent a user from cluttering the chat with clues, each user is restricted to one `!clue` per period of time. This period is configurable using the `clue_cooldown_per_person` parameter (`--twitch.clue-cooldown-per-person` on the command line). The bot will ignore clue commands from a user within this time.
 
-If two users request the same clue in succession, Twitch will prevent the bot from posting the same message twice in a row. There is no way to prevent this behavior for a (non-verified) bot.
+If a single user requests the same clue twice in succession and the bot hasn't spoken since the previous time, Twitch will prevent the bot from posting the same message twice in a row.

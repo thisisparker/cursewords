@@ -14,7 +14,6 @@ TWITCH_URI = 'wss://irc-ws.chat.twitch.tv:443'
 # dropping messages
 MESSAGE_COOLDOWN_SECS = 1
 
-
 HELLOS = [
     'Hello!', 'Bonjour!', '¡Hola!', 'Nǐ hǎo.', 'Konnichiwa!', 'Hallo!',
     'Namaste!', 'Shalom!', 'Greetings, puzzle people!'
@@ -238,9 +237,12 @@ class TwitchBot(threading.Thread):
 
     async def shutdown(self):
         goodbye = random.choice(GOODBYES)
+        self._outgoing_message_queue = []
         await self.post_message(f'{goodbye}')
+        await self._post_next_message()
+
         if self.enable_guessing and self.successful_guessing_users:
-            print('\n\n\n### Thanks to these successful solvers:\n')
+            print('\n### Thanks to these successful solvers:\n')
             for user in sorted(self.successful_guessing_users):
                 print('  ' + user)
-            print('\n\n')
+            print('\n')
