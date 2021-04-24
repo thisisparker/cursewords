@@ -16,7 +16,7 @@
 * animated rewards for when a user guesses a word
 * a chatbot command to request the clue of a given word be posted to the chat
 
-Cursewords is currently under active development, and should not be considered fully "released." That said, it is stable and suitable for everyday use.
+`cursewords` is currently under active development, and should not be considered fully "released." That said, it is stable and suitable for everyday use.
 
 ## Installation
 
@@ -64,7 +64,7 @@ Settings in TOML sections use the section name followed by a dot, as in `--twitc
   * When someone posts a message to the chat containing a solution to an unsolved clue, the board will highlight the squares. This signals to the solver that someone has made a correct guess, and rewards viewers for guessing.
   * Any word or phrase in a chat message counts as a guess.
 * **Clues**
-  * Anyone can request one of the clues from the board with the `!clue` command, like so: `!clue 22d` Cursewords posts the requested clue to the room.
+  * Anyone can request one of the clues from the board with the `!clue` command, like so: `!clue 22d` The requested clue is posted to the room.
 
 These features can be enabled or disabled separately with configuration.
 
@@ -90,7 +90,7 @@ Keep the OAuth token a secret! It behaves like a real password for accessing the
 
 You can generate a new OAuth token at any time by visiting: [https://twitchapps.com/tmi/]
 
-(There are nicer ways to [authenticate a bot on Twitch](https://dev.twitch.tv/docs/authentication), but Cursewords does not yet support them. Contributions welcome!)
+(There are nicer ways to [authenticate a bot on Twitch](https://dev.twitch.tv/docs/authentication), but `cursewords` does not yet support them. Contributions welcome!)
 
 ### Troubleshooting
 
