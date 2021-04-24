@@ -71,7 +71,7 @@ These features can be enabled or disabled separately with configuration.
 To enable Twitch integration:
 
 1. Create a Twitch.tv account for the bot, or use an existing account that you control.
-2. In your browser, visit [https://twitchapps.com/tmi/] and sign in with the bot's account and password. This generates an OAuth token, a string of letters and numbers that begins `oauth:...` Copy the OAuth token to your clipboard.
+2. In your browser, visit https://twitchapps.com/tmi/ and sign in with the bot's account and password. This generates an OAuth token, a string of letters and numbers that begins `oauth:...` Copy the OAuth token to your clipboard.
 3. Copy the `cursewords.toml` file from this distribution to the desired location, and edit it to set the parameters under `[twitch]`:
     * `enable = true` : enables the Twitch features
     * `nickname = "..."` : the bot's Twitch account name
@@ -88,7 +88,7 @@ The OAuth token is a temporary password that `cursewords` uses to connect to Twi
 
 Keep the OAuth token a secret! It behaves like a real password for accessing the Twitch API. If you no longer want an app to be able to connect using the token, you can revoke access. Sign in to Twitch.tv with the bot account, go to **Settings**, then select the **Connections** tab. Locate the "Twitch Developer" connection then click **Disconnect**.
 
-You can generate a new OAuth token at any time by visiting: [https://twitchapps.com/tmi/]
+You can generate a new OAuth token at any time by visiting: https://twitchapps.com/tmi/
 
 (There are nicer ways to [authenticate a bot on Twitch](https://dev.twitch.tv/docs/authentication), but `cursewords` does not yet support them. Contributions welcome!)
 
