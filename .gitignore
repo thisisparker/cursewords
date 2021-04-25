@@ -1,4 +1,7 @@
 *.puz
-__pycache__/*
+*/__pycache__/*
 dist/*
 build/*
+*.egg-info
+.vscode
+.DS_Store

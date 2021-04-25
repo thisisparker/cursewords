@@ -1,7 +1,7 @@
 #! /usr/bin/env python3
 
-import argparse
 import itertools
+import logging
 import os
 import sys
 import time
@@ -13,6 +13,12 @@ import puz
 from blessed import Terminal
 
 from . import chars
+from . import config
+from . import twitch
+
+
+CONFIG_FNAME = 'cursewords.toml'
+LOG_FNAME = 'cursewords.log'
 
 
 class Cell:
@@ -56,11 +62,13 @@ class Grid:
         self.grid_y = grid_y
         self.term = term
 
-        self.notification_area = (term.height-2, self.grid_x)
+        self.notification_area = (term.height - 2, self.grid_x)
+        self.twinkle_delay = 0.1
 
     def load(self, puzfile):
         self.puzfile = puzfile
         self.cells = {}
+        self.twinkles = {}
         self.row_count = puzfile.height
         self.column_count = puzfile.width
 
@@ -72,8 +80,8 @@ class Grid:
                 idx = i * self.column_count + j
                 entry = self.puzfile.fill[idx]
                 self.cells[(j, i)] = Cell(
-                        self.puzfile.solution[idx],
-                        entry)
+                    self.puzfile.solution[idx],
+                    entry)
 
         self.across_words = []
         for i in range(self.row_count):
@@ -103,8 +111,19 @@ class Grid:
             if len(current_word) > 1:
                 self.down_words.append(current_word)
 
-        self.down_words_grouped = sorted(self.down_words,
-                key=lambda word: (word[0][1], word[0][0]))
+        self.down_words_grouped = sorted(
+            self.down_words,
+            key=lambda word: (word[0][1], word[0][0]))
+
+        self.word_index = {}
+        for word_coords in (self.across_words + self.down_words):
+            word_text = ''.join(
+                self.cells[pos].solution for pos in word_coords).lower()
+            if word_text not in self.word_index:
+                self.word_index[word_text] = []
+            # word_index maps word text to a list of coordinate sets. This
+            # supports the edge case where a puzzle contains dupes.
+            self.word_index[word_text].append(word_coords)
 
         num = self.puzfile.clue_numbering()
         self.across_clues = [word['clue'] for word in num.across]
@@ -129,7 +148,8 @@ class Grid:
 
         timer_bytes = self.puzfile.extensions.get(puz.Extensions.Timer, None)
         if timer_bytes:
-            self.start_time, self.timer_active = timer_bytes.decode().split(',')
+            self.start_time, self.timer_active = \
+                timer_bytes.decode().split(',')
         else:
             self.start_time, self.timer_active = 0, 1
 
@@ -140,11 +160,11 @@ class Grid:
         divider_row = self.get_divider_row()
 
         print(self.term.move(self.grid_y, self.grid_x)
-                + self.term.dim(top_row))
+              + self.term.dim(top_row))
         for index, y_val in enumerate(
-                                range(self.grid_y + 1,
-                                      self.grid_y + self.row_count * 2),
-                                1):
+                range(self.grid_y + 1,
+                      self.grid_y + self.row_count * 2),
+                1):
             if index % 2 == 0:
                 print(self.term.move(y_val, self.grid_x) +
                       self.term.dim(divider_row))
@@ -176,7 +196,7 @@ class Grid:
                 self.draw_cell(position)
             elif cell.is_block():
                 print(self.term.move(y_coord, x_coord - 1) +
-                        self.term.dim(chars.squareblock))
+                      self.term.dim(chars.squareblock))
 
             if cell.number:
                 small = str(cell.number).translate(chars.small_nums)
@@ -186,19 +206,21 @@ class Grid:
     def confirm_quit(self, modified_since_save):
         if modified_since_save:
             confirmation = self.get_notification_input(
-                                "Quit without saving? (y/n)",
-                                chars=1, blocking=True, timeout=5)
+                "Quit without saving? (y/n)",
+                chars=1, blocking=True, timeout=5)
             return confirmation.lower() == 'y'
         return True
 
     def confirm_clear(self):
-        confirmation = self.get_notification_input("Clear puzzle? (y/n)",
-                                chars=1, blocking=True, timeout=5)
+        confirmation = self.get_notification_input(
+            "Clear puzzle? (y/n)",
+            chars=1, blocking=True, timeout=5)
         return confirmation.lower() == 'y'
 
     def confirm_reset(self):
-        confirmation = self.get_notification_input("Reset puzzle? (y/n)",
-                                chars=1, blocking=True, timeout=5)
+        confirmation = self.get_notification_input(
+            "Reset puzzle? (y/n)",
+            chars=1, blocking=True, timeout=5)
         return confirmation.lower() == 'y'
 
     def save(self, filename):
@@ -263,7 +285,6 @@ class Grid:
         term_y = self.grid_y + (2 * point_y) + 1
         return (term_y, term_x)
 
-
     def make_row(self, leftmost, middle, divider, rightmost):
         chars = ''
         for col in range(1, self.column_count * 4):
@@ -271,16 +292,19 @@ class Grid:
         return leftmost + chars + rightmost
 
     def get_top_row(self):
-        return self.make_row(chars.ulcorner, chars.hline, chars.ttee, chars.urcorner)
+        return self.make_row(chars.ulcorner, chars.hline,
+                             chars.ttee, chars.urcorner)
 
     def get_bottom_row(self):
-        return self.make_row(chars.llcorner, chars.hline, chars.btee, chars.lrcorner)
+        return self.make_row(chars.llcorner, chars.hline,
+                             chars.btee, chars.lrcorner)
 
     def get_middle_row(self):
         return self.make_row(chars.vline, " ", chars.vline, chars.vline)
 
     def get_divider_row(self):
-        return self.make_row(chars.ltee, chars.hline, chars.bigplus, chars.rtee)
+        return self.make_row(chars.ltee, chars.hline,
+                             chars.bigplus, chars.rtee)
 
     def compile_cell(self, position):
         cell = self.cells.get(position)
@@ -319,19 +343,19 @@ class Grid:
         print(self.term.move(*self.to_term(position)) + value)
 
     def get_notification_input(self, message, timeout=5, chars=3,
-            input_condition=str.isalnum, blocking=False):
+                               input_condition=str.isalnum, blocking=False):
 
         # If there's already a notification timer running, stop it.
         try:
             self.notification_timer.cancel()
-        except:
+        except BaseException:
             pass
 
         input_phrase = message + " "
         key_input_place = len(input_phrase)
         print(self.term.move(*self.notification_area)
-                + self.term.reverse(input_phrase)
-                + self.term.clear_eol)
+              + self.term.reverse(input_phrase)
+              + self.term.clear_eol)
 
         user_input = ''
         keypress = None
@@ -339,14 +363,16 @@ class Grid:
             keypress = self.term.inkey(timeout)
             if input_condition(keypress):
                 user_input += keypress
-                print(self.term.move(self.notification_area[0],
-                        self.notification_area[1] + key_input_place),
-                        user_input)
+                print(self.term.move(
+                    self.notification_area[0],
+                    self.notification_area[1] + key_input_place),
+                    user_input)
             elif keypress.name in ['KEY_DELETE']:
                 user_input = user_input[:-1]
-                print(self.term.move(self.notification_area[0],
-                        self.notification_area[1] + key_input_place),
-                        user_input + self.term.clear_eol)
+                print(self.term.move(
+                    self.notification_area[0],
+                    self.notification_area[1] + key_input_place),
+                    user_input + self.term.clear_eol)
             elif blocking and keypress.name not in ['KEY_ENTER', 'KEY_ESCAPE']:
                 continue
             else:
@@ -356,14 +382,87 @@ class Grid:
 
     def send_notification(self, message, timeout=5):
         self.notification_timer = threading.Timer(timeout,
-                self.clear_notification_area)
+                                                  self.clear_notification_area)
         self.notification_timer.daemon = True
         print(self.term.move(*self.notification_area)
-                + self.term.reverse(message) + self.term.clear_eol)
+              + self.term.reverse(message) + self.term.clear_eol)
         self.notification_timer.start()
 
     def clear_notification_area(self):
         print(self.term.move(*self.notification_area) + self.term.clear_eol)
+
+    def draw_twinkle(self, pos, frame):
+        # 0th char is vline, will always reset square sides in last frame
+        twinkle_chars = chars.vline + '/-\\'
+        twinkle_c = twinkle_chars[frame % len(twinkle_chars)]
+        term_y, term_x = self.to_term(pos)
+        print(self.term.move(term_y, term_x - 2) + twinkle_c
+              + self.term.move(term_y, term_x + 2) + twinkle_c)
+
+    def set_twinkle_timer(self, force=False):
+        if force or getattr(self, 'twinkle_timer', None) is None:
+            self.twinkle_timer = threading.Timer(
+                self.twinkle_delay, self.animate_twinkles)
+            self.twinkle_timer.daemon = True
+            self.twinkle_timer.start()
+
+    def start_twinkle(self, pos, duration=None):
+        if duration is None:
+            duration = int(5 / self.twinkle_delay)
+        self.twinkles[pos] = duration
+        self.set_twinkle_timer()
+
+    def animate_twinkles(self):
+        dead_twinkles = []
+        for pos in self.twinkles:
+            self.twinkles[pos] -= 1
+            self.draw_twinkle(pos, self.twinkles[pos])
+            if self.twinkles[pos] == 0:
+                dead_twinkles.append(pos)
+        for pos in dead_twinkles:
+            del self.twinkles[pos]
+
+        if self.twinkles:
+            self.set_twinkle_timer(force=True)
+        else:
+            self.twinkle_timer = None
+
+    def clear_twinkles(self):
+        for pos in self.twinkles:
+            self.draw_twinkle(pos, 0)
+        self.twinkles = {}
+
+    def twinkle_unsolved_word(self, txt, duration=None):
+        """Twinkle an unsolved word via its lowercase text, if any.
+
+        In the edge case where a word appears more than once in the puzzle
+        unsolved, only one unsolved instance is twinkled.
+
+        Returns:
+            True if a matching unsolved word was found and twinkled.
+        """
+        if txt in self.word_index:
+            for word_coords in self.word_index[txt]:
+                if all(self.cells[pos].is_correct() for pos in word_coords):
+                    continue
+                for pos in word_coords:
+                    self.start_twinkle(pos, duration=duration)
+                return True
+        return False
+
+    def get_clue_by_number(self, num, is_across=True):
+        if is_across:
+            word_list = self.across_words
+            clue_list = self.across_clues
+        else:
+            word_list = self.down_words_grouped
+            clue_list = self.down_clues
+
+        for i, word in enumerate(word_list):
+            if self.cells[word[0]].number == num:
+                return clue_list[i]
+
+        return None
 
 
 class Cursor:
@@ -419,7 +518,7 @@ class Cursor:
 
         if not overwrite_mode:
             ordered_spaces = [pos for pos in ordered_spaces
-                    if self.grid.cells.get(pos).is_blankish()]
+                              if self.grid.cells.get(pos).is_blankish()]
 
         return next(iter(ordered_spaces), None)
 
@@ -458,7 +557,7 @@ class Cursor:
         # the blank_placement setting
         if (blank_placement and
                 not any(self.grid.cells.get(pos).is_blankish() for
-                pos in itertools.chain(*self.grid.across_words))):
+                        pos in itertools.chain(*self.grid.across_words))):
             blank_placement = False
 
         # Otherwise, if blank_placement is on, put the
@@ -494,7 +593,7 @@ class Cursor:
         # the blank_placement setting
         if (blank_placement and
                 not any(self.grid.cells.get(pos).is_blankish() for
-                pos in itertools.chain(*self.grid.across_words))):
+                        pos in itertools.chain(*self.grid.across_words))):
             blank_placement = False
 
         if blank_placement and self.earliest_blank_in_word():
@@ -504,7 +603,7 @@ class Cursor:
 
     def earliest_blank_in_word(self):
         blanks = (pos for pos in self.current_word()
-                    if self.grid.cells.get(pos).is_blankish())
+                  if self.grid.cells.get(pos).is_blankish())
         return next(blanks, None)
 
     def move_right(self):
@@ -554,11 +653,11 @@ class Cursor:
         if num:
             pos = next((pos for pos in self.grid.cells
                         if self.grid.cells.get(pos).number == int(num)),
-                        None)
+                       None)
             if pos:
                 self.position = pos
                 self.grid.send_notification(
-                        "Moved cursor to square {}.".format(num))
+                    "Moved cursor to square {}.".format(num))
             else:
                 self.grid.send_notification("Not a valid number.")
         else:
@@ -584,7 +683,7 @@ class Timer(threading.Thread):
         while self.active:
             if self.is_running:
                 self.time_passed = (self.starting_seconds
-                                   + int(time.time() - self.start_time))
+                                    + int(time.time() - self.start_time))
                 self.show_time()
 
             time.sleep(0.5)
@@ -594,7 +693,7 @@ class Timer(threading.Thread):
         x_coord = self.grid.grid_x + self.grid.column_count * 4 - 7
 
         print(self.grid.term.move(y_coord, x_coord)
-                + self.display_format())
+              + self.display_format())
 
     def display_format(self):
         time_amount = self.time_passed
@@ -611,7 +710,7 @@ class Timer(threading.Thread):
         time_amount = self.time_passed
 
         save_string = '{t},{r}'.format(
-                t=int(time_amount), r=int(self.active))
+            t=int(time_amount), r=int(self.active))
 
         save_bytes = save_string.encode(puz.ENCODING)
 
@@ -632,23 +731,67 @@ def main():
     with open(version_file) as f:
         version = f.read().strip()
 
-    parser = argparse.ArgumentParser(
-            prog='cursewords',
-            description="""A terminal-based crossword puzzle solving interface.""")
+    cfgparser = config.ConfigParser(
+        CONFIG_FNAME,
+        prog='cursewords',
+        description='A terminal-based crossword puzzle solving interface.')
+    cfgparser.add_parameter(
+        'twitch.enable',
+        type=bool,
+        help='Enables Twitch integration')
+    cfgparser.add_parameter(
+        'twitch.nickname',
+        help='The Twitch bot account name')
+    cfgparser.add_parameter(
+        'twitch.channel',
+        help='The Twitch channel to join')
+    cfgparser.add_parameter(
+        'twitch.oauth_token',
+        help='The OAuth token to use to connect with this account')
+    cfgparser.add_parameter(
+        'twitch.enable_guessing',
+        type=bool,
+        help='Enables reacting to guesses in the Twitch chat')
+    cfgparser.add_parameter(
+        'twitch.enable_clue',
+        type=bool,
+        help='Enables the !clue command in the Twitch chat')
+    cfgparser.add_parameter(
+        'twitch.clue_cooldown_per_person',
+        default=10,
+        type=int,
+        help='Seconds a Twitch chat user must wait between !clue commands')
+    cfgparser.add_parameter(
+        'log_to_file',
+        type=bool,
+        help='Log messages to a file named cursewords.log')
 
-    parser.add_argument('filename', metavar='PUZfile',
-            help="""path of puzzle file in the AcrossLite .puz format""")
-    parser.add_argument('--downs-only', action='store_true',
-            help="""displays only the down clues""")
-    parser.add_argument('--version', action='version', version=version)
+    parser = cfgparser.get_argument_parser()
+    parser.add_argument(
+        'filename', metavar='PUZfile',
+        help='Path of puzzle file in the AcrossLite .puz format')
+    parser.add_argument(
+        '--downs-only', action='store_true',
+        help='Displays only the down clues')
+    parser.add_argument(
+        '--version', action='version', version=version)
 
+    cfg = cfgparser.parse_cfg()
     args = parser.parse_args()
     filename = args.filename
     downs_only = args.downs_only
 
+    if cfg.log_to_file:
+        logging.basicConfig(
+            filename=LOG_FNAME,
+            encoding='utf-8',
+            level=logging.INFO)
+    else:
+        logging.basicConfig(stream=os.devnull)
+
     try:
         puzfile = puz.read(filename)
-    except:
+    except BaseException:
         sys.exit("Unable to parse {} as a .puz file.".format(filename))
 
     term = Terminal()
@@ -663,15 +806,15 @@ def main():
     puzzle_height = 2 * grid.row_count
 
     min_width = (puzzle_width
-                + grid_x
-                + 2) # a little breathing room
+                 + grid_x
+                 + 2)  # a little breathing room
 
     min_height = (puzzle_height
-                 + grid_y # includes the top bar + timer
-                 + 2 # padding above clues
-                 + 3 # clue area
-                 + 2 # toolbar
-                 + 2) # again, just some breathing room
+                  + grid_y  # includes the top bar + timer
+                  + 2  # padding above clues
+                  + 3  # clue area
+                  + 2  # toolbar
+                  + 2)  # again, just some breathing room
 
     necessary_resize = []
     if term.width < min_width:
@@ -682,7 +825,7 @@ def main():
     if necessary_resize:
         exit_text = textwrap.dedent("""\
         This puzzle is {} columns wide and {} rows tall.
-        The terminal window must be {} to properly display 
+        The terminal window must be {} to properly display
         it.""".format(
             grid.column_count, grid.row_count,
             ' and '.join(necessary_resize)))
@@ -710,8 +853,8 @@ def main():
         puzzle_info = "{}…".format(puzzle_info[:pz_width - 1])
 
     headline = " {:<{pz_w}}{:>{sw_w}} ".format(
-            puzzle_info, software_info,
-            pz_w=pz_width, sw_w=sw_width)
+        puzzle_info, software_info,
+        pz_w=pz_width, sw_w=sw_width)
 
     with term.location(x=0, y=0):
         print(term.dim(term.reverse(headline)))
@@ -724,7 +867,7 @@ def main():
                 ("^R", "reveal"),
                 ("^G", "go to"),
                 ("^X", "clear"),
-                ("^Z", "reset"),]
+                ("^Z", "reset"), ]
 
     if term.width >= 15 * len(commands):
         for shortcut, action in commands:
@@ -735,7 +878,7 @@ def main():
             print(toolbar, end='')
     else:
         grid.notification_area = (grid.notification_area[0] - 1, grid_x)
-        command_split = int(len(commands)/2) - 1
+        command_split = int(len(commands) / 2) - 1
         for idx, (shortcut, action) in enumerate(commands):
             shortcut = term.reverse(shortcut)
             toolbar += "{:<25}".format(' '.join([shortcut, action]))
@@ -750,9 +893,9 @@ def main():
                      term.width - 2 - grid_x)
 
     clue_wrapper = textwrap.TextWrapper(
-            width=clue_width,
-            max_lines=3,
-            subsequent_indent=grid_x * ' ')
+        width=clue_width,
+        max_lines=3,
+        subsequent_indent=grid_x * ' ')
 
     start_pos = grid.across_words[0][0]
     cursor = Cursor(start_pos, "across", grid)
@@ -769,6 +912,17 @@ def main():
                   is_running=True, active=bool(int(grid.timer_active)))
     timer.start()
 
+    twitchbot = twitch.TwitchBot(
+        grid,
+        enable=cfg.twitch.enable,
+        nickname=cfg.twitch.nickname,
+        channel=cfg.twitch.channel,
+        oauth_token=cfg.twitch.oauth_token,
+        enable_guessing=cfg.twitch.enable_guessing,
+        enable_clue=cfg.twitch.enable_clue,
+        clue_cooldown_per_person=cfg.twitch.clue_cooldown_per_person)
+    twitchbot.start()
+
     info_location = {'x': grid_x, 'y': grid_y + 2 * grid.row_count + 2}
 
     with term.raw(), term.hidden_cursor():
@@ -782,34 +936,34 @@ def main():
                 for pos in cursor.current_word():
                     grid.draw_highlighted_cell(pos)
 
-            # Draw the clue for the new word:
+                # Draw the clue for the new word:
                 if cursor.direction == "across":
                     num_index = grid.across_words.index(
-                            cursor.current_word())
+                        cursor.current_word())
                     clue = grid.across_clues[num_index]
                     if downs_only:
                         clue = "—"
                 elif cursor.direction == "down":
                     num_index = grid.down_words_grouped.index(
-                            cursor.current_word())
+                        cursor.current_word())
                     clue = grid.down_clues[num_index]
 
                 num = str(grid.cells.get(cursor.current_word()[0]).number)
                 compiled_clue = (num + " " + cursor.direction.upper()
-                                + ": " + clue)
+                                 + ": " + clue)
                 wrapped_clue = clue_wrapper.wrap(compiled_clue)
                 wrapped_clue += [''] * (3 - len(wrapped_clue))
                 wrapped_clue = [line + term.clear_eol for line in wrapped_clue]
 
                 # This is fun: since we're in raw mode, \n isn't sufficient to
-                # return the printing location to the first column. If you 
+                # return the printing location to the first column. If you
                 # don't also have \r,
                 # it
                 #    prints
                 #           like
                 #                this after each newline
                 print(term.move(info_location['y'], info_location['x'])
-                        + '\r\n'.join(wrapped_clue))
+                      + '\r\n'.join(wrapped_clue))
 
             # Otherwise, just draw the old square now that it's not under
             # the cursor
@@ -817,16 +971,15 @@ def main():
                 grid.draw_highlighted_cell(old_position)
 
             current_cell = grid.cells.get(cursor.position)
-            value = current_cell.entry
             grid.draw_cursor_cell(cursor.position)
 
             # Check if the puzzle is complete!
             if not puzzle_complete and all(grid.cells.get(pos).is_correct()
-                    for pos in grid.cells):
+                                           for pos in grid.cells):
                 puzzle_complete = True
                 with term.location(x=grid_x, y=2):
                     print(term.reverse("You've completed the puzzle!"),
-                            term.clear_eol)
+                          term.clear_eol)
                 timer.show_time()
                 timer.active = False
 
@@ -847,7 +1000,8 @@ def main():
 
             # ctrl-s
             elif keypress == chr(19):
-                grid.puzfile.extensions[puz.Extensions.Timer] = timer.save_format()
+                grid.puzfile.extensions[puz.Extensions.Timer] = \
+                    timer.save_format()
                 grid.save(filename)
                 modified_since_save = False
 
@@ -856,6 +1010,7 @@ def main():
                 if timer.is_running:
                     timer.pause()
                     grid.draw()
+                    grid.clear_twinkles()
 
                     with term.location(**info_location):
                         print('\r\n'.join(['PUZZLE PAUSED' + term.clear_eol,
@@ -899,8 +1054,8 @@ def main():
             # ctrl-c
             elif keypress == chr(3):
                 group = grid.get_notification_input(
-                        "Check (l)etter, (w)ord, or (p)uzzle?",
-                        chars=1)
+                    "Check (l)etter, (w)ord, or (p)uzzle?",
+                    chars=1)
                 scope = ''
                 if group.lower() == 'l':
                     scope = 'letter'
@@ -914,7 +1069,7 @@ def main():
 
                 if scope:
                     grid.send_notification("Checked {scope} for errors.".
-                            format(scope=scope))
+                                           format(scope=scope))
                 else:
                     grid.send_notification("No valid input entered.")
 
@@ -939,12 +1094,11 @@ def main():
                 else:
                     grid.send_notification("Clear command canceled.")
 
-
             # ctrl-r
             elif keypress == chr(18):
                 group = grid.get_notification_input(
-                        "Reveal (l)etter, (w)ord, or (p)uzzle?",
-                        chars=1)
+                    "Reveal (l)etter, (w)ord, or (p)uzzle?",
+                    chars=1)
                 scope = ''
                 if group.lower() == 'l':
                     scope = 'letter'
@@ -958,7 +1112,7 @@ def main():
 
                 if scope:
                     grid.send_notification("Revealed answers for {scope}.".
-                            format(scope=scope))
+                                           format(scope=scope))
                 else:
                     grid.send_notification("No valid input entered.")
 
@@ -984,10 +1138,12 @@ def main():
                 cursor.retreat_within_word(end_placement=True)
 
             # Navigation
-            elif keypress.name in ['KEY_TAB'] and current_cell.is_blankish():
+            elif (keypress.name in ['KEY_TAB'] and
+                  current_cell.is_blankish()):
                 cursor.advance_to_next_word(blank_placement=True)
 
-            elif keypress.name in ['KEY_TAB'] and not current_cell.is_blankish():
+            elif (keypress.name in ['KEY_TAB'] and
+                  not current_cell.is_blankish()):
                 cursor.advance_within_word(overwrite_mode=False)
 
             elif keypress.name in ['KEY_PGDOWN']:
@@ -1010,14 +1166,14 @@ def main():
                     cursor.switch_direction()
 
             elif ((cursor.direction == "across" and
-                        keypress.name == 'KEY_RIGHT') or
+                   keypress.name == 'KEY_RIGHT') or
                     (cursor.direction == "down" and
                         keypress.name == 'KEY_DOWN')):
 
                 cursor.advance()
 
             elif ((cursor.direction == "across" and
-                        keypress.name == 'KEY_LEFT') or
+                   keypress.name == 'KEY_LEFT') or
                     (cursor.direction == "down" and
                         keypress.name == 'KEY_UP')):
 
@@ -1036,6 +1192,9 @@ def main():
                         cursor.retreat_perpendicular()
 
     print(term.exit_fullscreen())
+    timer.pause()
+    twitchbot.running = False
+    twitchbot.join()
 
 
 if __name__ == '__main__':
