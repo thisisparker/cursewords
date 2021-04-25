@@ -52,7 +52,8 @@ class TwitchBot(threading.Thread):
 
         self.message_handlers = [
             (re.compile(r'PING (.*)\r\n'), self.handle_ping),
-            (re.compile(r'.* PRIVMSG #(\S+) :(.*)\r\n'), self.handle_chat_msg),
+            (re.compile(r'.*:(\w+)!\S* PRIVMSG #\S+ :(.*)\r\n'),
+                self.handle_chat_msg),
             (re.compile(r'.* WHISPER (\S+) :(.*)\r\n'), self.handle_whisper),
             (re.compile(r'.* JOIN #(.*)\r\n'), self.handle_join),
             (re.compile(r'.* NOTICE #(\S*) (.*)\r\n'), self.handle_notice)
@@ -121,6 +122,7 @@ class TwitchBot(threading.Thread):
                     for (pat, func) in self.message_handlers:
                         m = pat.search(resp)
                         if m:
+                            logging.info('Matched message: ' + resp)
                             await func(*m.groups())
                 except asyncio.exceptions.TimeoutError:
                     pass
