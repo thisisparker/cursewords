@@ -1030,8 +1030,12 @@ def main():
                 for pos in cursor.current_word():
                     current_entry += grid.cells.get(pos).solution
 
+                compiled_entry = '{} | {}'.format(
+                                                compiled_clue, current_entry)
+
                 with open('notable_clues.txt', 'a') as f:
-                    f.write('{} | {}\n'.format(compiled_clue, current_entry))
+                    f.write('\n  '.join(
+                            textwrap.wrap(compiled_entry, width=30)) + '\n')
 
             # Letter entry
             elif not puzzle_complete and keypress.isalnum():
@@ -1110,6 +1114,7 @@ def main():
 
     with open('notable_clues.txt', 'r') as f:
         notable_clues = f.read()
+        notable_clues = notable_clues.replace('\n  ',' ')
 
     with open('notable_clues.txt', 'w') as f:
         f.write('')
