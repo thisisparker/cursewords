@@ -852,6 +852,10 @@ def main():
                 num = str(grid.cells.get(cursor.current_word()[0]).number)
                 compiled_clue = (num + " " + cursor.direction.upper()
                                 + ": " + clue)
+
+                with open('current_clue.txt', 'w') as f:
+                    f.write(compiled_clue + '\n')
+
                 wrapped_clue = clue_wrapper.wrap(compiled_clue)
                 wrapped_clue += [''] * (3 - len(wrapped_clue))
                 wrapped_clue = [line + term.clear_eol for line in wrapped_clue]
@@ -1089,6 +1093,10 @@ def main():
                 if (keypress == '{' and blank_cells_remaining):
                     while not grid.cells.get(cursor.position).is_blankish():
                         cursor.retreat_perpendicular()
+
+
+    with open('current_clue.txt', 'w') as f:
+        f.write('')
 
     print(term.exit_fullscreen())
 
