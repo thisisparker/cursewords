@@ -1023,6 +1023,12 @@ def main():
 
                 old_word = []
 
+
+            # ctrl-b
+            elif keypress == chr(2):
+                with open('notable_clues.txt', 'a') as f:
+                    f.write(compiled_clue + '\n')
+
             # Letter entry
             elif not puzzle_complete and keypress.isalnum():
                 if not current_cell.is_blankish():
@@ -1097,6 +1103,16 @@ def main():
 
     with open('current_clue.txt', 'w') as f:
         f.write('')
+
+    with open('notable_clues.txt', 'r') as f:
+        notable_clues = f.read()
+
+    with open('notable_clues.txt', 'w') as f:
+        f.write('')
+
+    notable_clues_filename = filename + '.notable_clues.txt'
+    with open(notable_clues_filename, 'a') as f:
+        f.write(notable_clues)
 
     print(term.exit_fullscreen())
 
