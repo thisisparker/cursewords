@@ -1026,8 +1026,12 @@ def main():
 
             # ctrl-b
             elif keypress == chr(2):
+                current_entry = ''
+                for pos in cursor.current_word():
+                    current_entry += grid.cells.get(pos).solution
+
                 with open('notable_clues.txt', 'a') as f:
-                    f.write(compiled_clue + '\n')
+                    f.write('{} | {}\n'.format(compiled_clue, current_entry))
 
             # Letter entry
             elif not puzzle_complete and keypress.isalnum():
