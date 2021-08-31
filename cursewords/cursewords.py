@@ -1009,7 +1009,7 @@ def main():
                 if current_cell.is_blankish():
                     cursor.advance_to_next_word(blank_placement=True)
                 else:
-                    cursor.advance_with_word(overwrite_mode=False)
+                    cursor.advance_within_word(overwrite_mode=False)
 
             elif keypress.name in ['KEY_PGDOWN']:
                 cursor.advance_to_next_word()
