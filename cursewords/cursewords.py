@@ -1003,16 +1003,20 @@ def main():
                 cursor.retreat_within_word(end_placement=True)
 
             # Navigation
-            elif keypress.name in ['KEY_TAB'] and current_cell.is_blankish():
-                cursor.advance_to_next_word(blank_placement=True)
-
-            elif keypress.name in ['KEY_TAB'] and not current_cell.is_blankish():
-                cursor.advance_within_word(overwrite_mode=False)
+            elif (keypress.name in ['KEY_TAB'] or
+                    (cursor.direction == "across" and keypress.name == "KEY_SRIGHT") or
+                    (cursor.direction == "down" and keypress.name == "KEY_SDOWN")):
+                if current_cell.is_blankish():
+                    cursor.advance_to_next_word(blank_placement=True)
+                else:
+                    cursor.advance_with_word(overwrite_mode=False)
 
             elif keypress.name in ['KEY_PGDOWN']:
                 cursor.advance_to_next_word()
 
-            elif keypress.name in ['KEY_BTAB']:
+            elif (keypress.name in ['KEY_BTAB'] or
+                    (cursor.direction == "across" and keypress.name == "KEY_SLEFT") or
+                    (cursor.direction == "down" and keypress.name == "KEY_SUP")):
                 cursor.retreat_within_word(blank_placement=True)
 
             elif keypress.name in ['KEY_PGUP']:
@@ -1042,13 +1046,17 @@ def main():
 
                 cursor.retreat()
 
-            elif keypress in ['}', ']'] or keypress.name in ['KEY_SRIGHT']:
+            elif (keypress in ['}', ']'] or
+                    (cursor.direction == "across" and keypress.name == 'KEY_SDOWN') or
+                    (cursor.direction == "down" and keypress.name == 'KEY_SRIGHT')):
                 cursor.advance_perpendicular()
                 if (keypress == '}' and blank_cells_remaining):
                     while not grid.cells.get(cursor.position).is_blankish():
                         cursor.advance_perpendicular()
 
-            elif keypress in ['{', '['] or keypress.name in ['KEY_SLEFT']:
+            elif (keypress in ['{', '['] or
+                    (cursor.direction == "across" and keypress.name == 'KEY_SUP') or
+                    (cursor.direction == "down" and keypress.name == 'KEY_SLEFT')):
                 cursor.retreat_perpendicular()
                 if (keypress == '{' and blank_cells_remaining):
                     while not grid.cells.get(cursor.position).is_blankish():
