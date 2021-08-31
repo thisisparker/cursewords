@@ -1,2 +1,2 @@
-blessed==1.15.0
+blessed==1.16
 puzpy==0.2.4
