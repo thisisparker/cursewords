@@ -110,6 +110,13 @@ class Grid:
         self.across_clues = [word['clue'] for word in num.across]
         self.down_clues = [word['clue'] for word in num.down]
 
+        self.across_spaces = [(j,i) for i in range(self.column_count)
+                                    for j in range(self.row_count)
+                                    if self.cells[(j,i)].is_letter()]
+        self.down_spaces = [(j,i) for j in range(self.row_count)
+                                  for i in range(self.column_count)
+                                  if self.cells[(j,i)].is_letter()]
+
         if self.puzfile.has_markup():
             markup = self.puzfile.markup().markup
 
@@ -444,6 +451,9 @@ class Cursor:
             word_group = self.grid.down_words_grouped
             next_words = self.grid.across_words
 
+        while self.current_word() not in word_group:
+            self.retreat()
+
         word_index = word_group.index(self.current_word())
 
         if word_index == len(word_group) - 1:
@@ -458,7 +468,7 @@ class Cursor:
         # the blank_placement setting
         if (blank_placement and
                 not any(self.grid.cells.get(pos).is_blankish() for
-                pos in itertools.chain(*self.grid.across_words))):
+                pos in self.grid.across_spaces + self.grid.down_spaces)):
             blank_placement = False
 
         # Otherwise, if blank_placement is on, put the
@@ -479,6 +489,9 @@ class Cursor:
             word_group = self.grid.down_words_grouped
             next_words = self.grid.across_words
 
+        while self.current_word() not in word_group:
+            self.advance()
+
         word_index = word_group.index(self.current_word())
 
         pos = -1 if end_placement else 0
@@ -494,7 +507,7 @@ class Cursor:
         # the blank_placement setting
         if (blank_placement and
                 not any(self.grid.cells.get(pos).is_blankish() for
-                pos in itertools.chain(*self.grid.across_words))):
+                pos in self.grid.across_spaces + self.grid.down_spaces)):
             blank_placement = False
 
         if blank_placement and self.earliest_blank_in_word():
@@ -508,14 +521,14 @@ class Cursor:
         return next(blanks, None)
 
     def move_right(self):
-        spaces = list(itertools.chain(*self.grid.across_words))
+        spaces = self.grid.across_spaces
         current_space = spaces.index(self.position)
         ordered_spaces = spaces[current_space + 1:] + spaces[:current_space]
 
         return next(iter(ordered_spaces))
 
     def move_left(self):
-        spaces = list(itertools.chain(*self.grid.across_words))
+        spaces = self.grid.across_spaces
         current_space = spaces.index(self.position)
         ordered_spaces = (spaces[current_space - 1::-1] +
                           spaces[:current_space:-1])
@@ -523,14 +536,14 @@ class Cursor:
         return next(iter(ordered_spaces))
 
     def move_down(self):
-        spaces = list(itertools.chain(*self.grid.down_words))
+        spaces = self.grid.down_spaces
         current_space = spaces.index(self.position)
         ordered_spaces = spaces[current_space + 1:] + spaces[:current_space]
 
         return next(iter(ordered_spaces))
 
     def move_up(self):
-        spaces = list(itertools.chain(*self.grid.down_words))
+        spaces = self.grid.down_spaces
         current_space = spaces.index(self.position)
         ordered_spaces = (spaces[current_space - 1::-1] +
                           spaces[:current_space:-1])
@@ -542,9 +555,9 @@ class Cursor:
         word = []
 
         if self.direction == "across":
-            word = next((w for w in self.grid.across_words if pos in w), [])
+            word = next((w for w in self.grid.across_words if pos in w), [pos])
         if self.direction == "down":
-            word = next((w for w in self.grid.down_words if pos in w), [])
+            word = next((w for w in self.grid.down_words if pos in w), [pos])
 
         return word
 
@@ -784,19 +797,25 @@ def main():
 
             # Draw the clue for the new word:
                 if cursor.direction == "across":
-                    num_index = grid.across_words.index(
+                    if cursor.current_word() in grid.across_words:
+                        num_index = grid.across_words.index(
                             cursor.current_word())
-                    clue = grid.across_clues[num_index]
-                    if downs_only:
-                        clue = "—"
+                        clue = grid.across_clues[num_index]
+                        if downs_only:
+                            clue = "—"
+                    else:
+                        clue = ""
                 elif cursor.direction == "down":
-                    num_index = grid.down_words_grouped.index(
+                    if cursor.current_word() in grid.down_words:
+                        num_index = grid.down_words_grouped.index(
                             cursor.current_word())
-                    clue = grid.down_clues[num_index]
+                        clue = grid.down_clues[num_index]
+                    else:
+                        clue = ""
 
-                num = str(grid.cells.get(cursor.current_word()[0]).number)
+                num = str(grid.cells.get(cursor.current_word()[0]).number) if clue else ""
                 compiled_clue = (num + " " + cursor.direction.upper()
-                                + ": " + clue)
+                                + ": " + clue) if num else ""
                 wrapped_clue = clue_wrapper.wrap(compiled_clue)
                 wrapped_clue += [''] * (3 - len(wrapped_clue))
                 wrapped_clue = [line + term.clear_eol for line in wrapped_clue]
