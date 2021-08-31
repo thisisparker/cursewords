@@ -31,6 +31,6 @@ cursewords todaysnyt.puz
 
 If you've used a program to solve crossword puzzles, navigation should be pretty intuitive. `tab` and `shift+tab` are the workhorses for navigation between blanks. `page up` and `page down` (on Mac, `Fn+` up/down arrow keys) jump between words without considering blank spaces. `ctrl+g`, followed by a number, will jump directly to the space with that number.
 
-If you need some help, `ctrl+c` will check the current square, word, or entire puzzle for errors, and `ctrl+r` will reveal answers (subject to the same scoping options). To clear all entries on the puzzle, use `ctrl+x`, and to reset the puzzle to its original state (resetting the timer and removing any stored information about hints and corrections, use `ctrl+z`.
+If you need some help, `ctrl+c` will check the current square, word, or entire puzzle for errors, and `ctrl+r` will reveal answers (subject to the same scoping options). To clear all entries on the puzzle, use `ctrl+x`, and to reset the puzzle to its original state (resetting the timer and removing any stored information about hints and corrections), use `ctrl+z`.
 
 To open a puzzle in `downs-only` mode, where only the down clues are visible, use the `--downs-only` flag when opening the file on the command line.
