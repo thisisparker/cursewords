@@ -1042,13 +1042,13 @@ def main():
 
                 cursor.retreat()
 
-            elif keypress in ['}', ']']:
+            elif keypress in ['}', ']'] or keypress.name in ['KEY_SRIGHT']:
                 cursor.advance_perpendicular()
                 if (keypress == '}' and blank_cells_remaining):
                     while not grid.cells.get(cursor.position).is_blankish():
                         cursor.advance_perpendicular()
 
-            elif keypress in ['{', '[']:
+            elif keypress in ['{', '['] or keypress.name in ['KEY_SLEFT']:
                 cursor.retreat_perpendicular()
                 if (keypress == '{' and blank_cells_remaining):
                     while not grid.cells.get(cursor.position).is_blankish():
