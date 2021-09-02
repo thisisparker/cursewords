@@ -1024,8 +1024,10 @@ def main():
 
             # Navigation
             elif (keypress.name in ['KEY_TAB'] or
-                    (cursor.direction == "across" and keypress.name == "KEY_SRIGHT") or
-                    (cursor.direction == "down" and keypress.name == "KEY_SDOWN")):
+                    (cursor.direction == "across" and
+                        keypress.name == "KEY_SRIGHT") or
+                    (cursor.direction == "down" and
+                        keypress.name == "KEY_SDOWN")):
                 if current_cell.is_blankish():
                     cursor.advance_to_next_word(blank_placement=True)
                 else:
@@ -1035,8 +1037,10 @@ def main():
                 cursor.advance_to_next_word()
 
             elif (keypress.name in ['KEY_BTAB'] or
-                    (cursor.direction == "across" and keypress.name == "KEY_SLEFT") or
-                    (cursor.direction == "down" and keypress.name == "KEY_SUP")):
+                    (cursor.direction == "across" and
+                        keypress.name == "KEY_SLEFT") or
+                    (cursor.direction == "down" and
+                        keypress.name == "KEY_SUP")):
                 cursor.retreat_within_word(blank_placement=True)
 
             elif keypress.name in ['KEY_PGUP']:
