@@ -1,3 +1,15 @@
+# pylint: disable=invalid-name
+# pylint: disable=missing-docstring
+# pylint: disable=too-many-lines
+# pylint: disable=too-many-instance-attributes
+# pylint: disable=too-many-branches
+# pylint: disable=too-many-statements
+# pylint: disable=too-many-arguments
+# pylint: disable=too-many-boolean-expressions
+# pylint: disable=too-many-locals
+# pylint: disable=too-many-public-methods
+# pylint: disable=bare-except
+
 #! /usr/bin/env python3
 
 import argparse
@@ -12,7 +24,7 @@ import puz
 
 from blessed import Terminal
 
-from . import chars
+from . import characters
 
 
 class Cell:
@@ -55,6 +67,24 @@ class Grid:
         self.grid_x = grid_x
         self.grid_y = grid_y
         self.term = term
+
+        self.puzfile = None
+        self.cells = {}
+        self.row_count = 0
+        self.column_count = 0
+
+        self.title = ''
+        self.author = ''
+
+        self.across_words = []
+        self.down_words = []
+        self.down_words_grouped = []
+        self.across_clues = []
+        self.down_clues = []
+
+        self.start_time = 0
+        self.timer_active = False
+        self.notification_timer = None
 
         self.notification_area = (term.height-2, self.grid_x)
 
@@ -184,10 +214,10 @@ class Grid:
                 self.draw_cell(position)
             elif cell.is_block():
                 print(self.term.move(y_coord, x_coord - 1) +
-                        self.term.dim(chars.squareblock))
+                        self.term.dim(characters.squareblock))
 
             if cell.number:
-                small = str(cell.number).translate(chars.small_nums)
+                small = str(cell.number).translate(characters.small_nums)
                 x_pos = x_coord - 1
                 print(self.term.move(y_coord - 1, x_pos) + small)
 
@@ -200,18 +230,18 @@ class Grid:
         if modified_since_save:
             confirmation = self.get_notification_input(
                                 "Quit without saving? (y/n)",
-                                chars=1, blocking=True, timeout=5)
+                                char_limit=1, blocking=True, timeout=5)
             return confirmation.lower() == 'y'
         return True
 
     def confirm_clear(self):
         confirmation = self.get_notification_input("Clear puzzle? (y/n)",
-                                chars=1, blocking=True, timeout=5)
+                                char_limit=1, blocking=True, timeout=5)
         return confirmation.lower() == 'y'
 
     def confirm_reset(self):
         confirmation = self.get_notification_input("Reset puzzle? (y/n)",
-                                chars=1, blocking=True, timeout=5)
+                                char_limit=1, blocking=True, timeout=5)
         return confirmation.lower() == 'y'
 
     def save(self, filename):
@@ -278,29 +308,33 @@ class Grid:
 
 
     def make_row(self, leftmost, middle, divider, rightmost):
-        chars = ''
+        row = ''
         for col in range(1, self.column_count * 4):
-            chars += divider if col % 4 == 0 else middle
-        return leftmost + chars + rightmost
+            row += divider if col % 4 == 0 else middle
+        return leftmost + row + rightmost
 
     def get_top_row(self):
-        return self.make_row(chars.ulcorner, chars.hline, chars.ttee, chars.urcorner)
+        return self.make_row(characters.ulcorner, characters.hline,
+                             characters.ttee, characters.urcorner)
 
     def get_bottom_row(self):
-        return self.make_row(chars.llcorner, chars.hline, chars.btee, chars.lrcorner)
+        return self.make_row(characters.llcorner, characters.hline,
+                             characters.btee, characters.lrcorner)
 
     def get_middle_row(self):
-        return self.make_row(chars.vline, " ", chars.vline, chars.vline)
+        return self.make_row(characters.vline, " ", characters.vline,
+                             characters.vline)
 
     def get_divider_row(self):
-        return self.make_row(chars.ltee, chars.hline, chars.bigplus, chars.rtee)
+        return self.make_row(characters.ltee, characters.hline,
+                             characters.bigplus, characters.rtee)
 
     def compile_cell(self, position):
         cell = self.cells.get(position)
         value = " " if cell.is_blank() else cell.entry
 
         if cell.circled:
-            value = value.translate(chars.encircle)
+            value = value.translate(characters.encircle)
 
         if cell.marked_wrong and not cell.revealed:
             value = self.term.red(value.lower())
@@ -331,7 +365,7 @@ class Grid:
         value = self.term.reverse(value) + markup
         print(self.term.move(*self.to_term(position)) + value)
 
-    def get_notification_input(self, message, timeout=5, chars=3,
+    def get_notification_input(self, message, timeout=5, char_limit=3,
             input_condition=str.isalnum, blocking=False):
 
         # If there's already a notification timer running, stop it.
@@ -348,7 +382,7 @@ class Grid:
 
         user_input = ''
         keypress = None
-        while keypress != '' and len(user_input) < chars:
+        while keypress != '' and len(user_input) < char_limit:
             keypress = self.term.inkey(timeout)
             if input_condition(keypress):
                 user_input += keypress
@@ -577,6 +611,8 @@ class Timer(threading.Thread):
         self.starting_seconds = starting_seconds
         self.is_running = is_running
         self.active = active
+        self.time_passed = 0
+        self.start_time = 0
 
         super().__init__(daemon=True)
 
@@ -809,7 +845,7 @@ def main():
                 wrapped_clue = [line + term.clear_eol for line in wrapped_clue]
 
                 # This is fun: since we're in raw mode, \n isn't sufficient to
-                # return the printing location to the first column. If you 
+                # return the printing location to the first column. If you
                 # don't also have \r,
                 # it
                 #    prints
@@ -824,7 +860,6 @@ def main():
                 grid.draw_highlighted_cell(old_position)
 
             current_cell = grid.cells.get(cursor.position)
-            value = current_cell.entry
             grid.draw_cursor_cell(cursor.position)
 
             # Check if the puzzle is complete!
@@ -904,7 +939,7 @@ def main():
             elif keypress == chr(3):
                 group = grid.get_notification_input(
                         "Check (l)etter, (w)ord, or (p)uzzle?",
-                        chars=1)
+                        char_limit=1)
                 scope = ''
                 if group.lower() == 'l':
                     scope = 'letter'
@@ -948,7 +983,7 @@ def main():
             elif keypress == chr(18):
                 group = grid.get_notification_input(
                         "Reveal (l)etter, (w)ord, or (p)uzzle?",
-                        chars=1)
+                        char_limit=1)
                 scope = ''
                 if group.lower() == 'l':
                     scope = 'letter'
