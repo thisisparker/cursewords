@@ -13,7 +13,6 @@
 #! /usr/bin/env python3
 
 import argparse
-import itertools
 import os
 import sys
 import time
