@@ -607,12 +607,11 @@ class Timer(threading.Thread):
         x_coord = self.grid.grid_x + self.grid.column_count * 4 - 7
 
         print(self.grid.term.move(y_coord, x_coord)
-                + self.display_format())
+                + self.format_time(self.time_passed))
 
-    def display_format(self):
-        time_amount = self.time_passed
-
-        m, s = divmod(time_amount, 60)
+    @classmethod
+    def format_time(cl, time_passed):
+        m, s = divmod(time_passed, 60)
         h, m = divmod(m, 60)
 
         ch = '{h:02d}:'.format(h=h) if h else '   '
