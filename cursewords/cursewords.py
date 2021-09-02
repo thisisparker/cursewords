@@ -174,19 +174,19 @@ class Grid:
         divider_row = self.get_divider_row()
 
         print(self.term.move(self.grid_y, self.grid_x)
-                + self.term.dim(top_row))
+                + self.term.dim + top_row + self.term.normal)
         for index, y_val in enumerate(
                                 range(self.grid_y + 1,
                                       self.grid_y + self.row_count * 2),
                                 1):
             if index % 2 == 0:
                 print(self.term.move(y_val, self.grid_x) +
-                      self.term.dim(divider_row))
+                      self.term.dim + divider_row + self.term.normal)
             else:
                 print(self.term.move(y_val, self.grid_x) +
-                      self.term.dim(middle_row))
+                      self.term.dim + middle_row + self.term.normal)
         print(self.term.move(self.grid_y + self.row_count * 2, self.grid_x)
-              + self.term.dim(bottom_row))
+              + self.term.dim + bottom_row + self.term.normal)
 
     def number(self):
         numbered_squares = []
@@ -207,7 +207,7 @@ class Grid:
                 self.draw_cell(position)
             elif cell.is_block():
                 print(self.term.move(y_coord, x_coord - 1) +
-                        self.term.dim(characters.squareblock))
+                        self.term.dim + characters.squareblock + self.term.normal)
 
             if cell.number:
                 small = str(cell.number).translate(characters.small_nums)
@@ -750,7 +750,7 @@ def main():
             pz_w=pz_width, sw_w=sw_width)
 
     with term.location(x=0, y=0):
-        print(term.dim(term.reverse(headline)))
+        print(term.dim + term.reverse(headline) + term.normal)
 
     toolbar = ''
     commands = [("^Q", "quit"),
@@ -1008,8 +1008,8 @@ def main():
                 modified_since_save = True
                 cursor.advance_within_word(overwrite_mode, wrap_mode=True)
 
-            # Delete key
-            elif not puzzle_complete and keypress.name == 'KEY_DELETE':
+            # Backspace key
+            elif not puzzle_complete and keypress.name == 'KEY_BACKSPACE':
                 current_cell.clear()
                 overwrite_mode = True
                 modified_since_save = True
@@ -1017,10 +1017,10 @@ def main():
 
             # Navigation
             elif (keypress.name in ['KEY_TAB'] or
-                    (cursor.direction == "across" and
-                        keypress.name == "KEY_SRIGHT") or
-                    (cursor.direction == "down" and
-                        keypress.name == "KEY_SDOWN")):
+                  (cursor.direction == "across" and
+                   keypress.name == "KEY_SRIGHT") or
+                  (cursor.direction == "down" and
+                   keypress.name == "KEY_SDOWN")):
                 if current_cell.is_blankish():
                     cursor.advance_to_next_word(blank_placement=True)
                 else:
@@ -1030,44 +1030,44 @@ def main():
                 cursor.advance_to_next_word()
 
             elif (keypress.name in ['KEY_BTAB'] or
-                    (cursor.direction == "across" and
-                        keypress.name == "KEY_SLEFT") or
-                    (cursor.direction == "down" and
-                        keypress.name == "KEY_SUP")):
+                  (cursor.direction == "across" and
+                   keypress.name == "KEY_SLEFT") or
+                  (cursor.direction == "down" and
+                   keypress.name == "KEY_SUP")):
                 cursor.retreat_within_word(blank_placement=True)
 
             elif keypress.name in ['KEY_PGUP']:
                 cursor.retreat_to_previous_word()
 
             elif (keypress.name == 'KEY_ENTER' or keypress == ' ' or
-                    (cursor.direction == "across" and
-                        keypress.name in ['KEY_DOWN', 'KEY_UP']) or
-                    (cursor.direction == "down" and
-                        keypress.name in ['KEY_LEFT', 'KEY_RIGHT'])):
+                  (cursor.direction == "across" and
+                   keypress.name in ['KEY_DOWN', 'KEY_UP']) or
+                  (cursor.direction == "down" and
+                   keypress.name in ['KEY_LEFT', 'KEY_RIGHT'])):
 
                 cursor.switch_direction()
                 if not cursor.current_word():
                     cursor.switch_direction()
 
             elif ((cursor.direction == "across" and
-                        keypress.name == 'KEY_RIGHT') or
-                    (cursor.direction == "down" and
-                        keypress.name == 'KEY_DOWN')):
+                   keypress.name == 'KEY_RIGHT') or
+                  (cursor.direction == "down" and
+                   keypress.name == 'KEY_DOWN')):
 
                 cursor.advance()
 
             elif ((cursor.direction == "across" and
-                        keypress.name == 'KEY_LEFT') or
-                    (cursor.direction == "down" and
-                        keypress.name == 'KEY_UP')):
+                   keypress.name == 'KEY_LEFT') or
+                  (cursor.direction == "down" and
+                   keypress.name == 'KEY_UP')):
 
                 cursor.retreat()
 
             elif (keypress in ['}', ']'] or
-                    (cursor.direction == "across" and
-                        keypress.name == 'KEY_SDOWN') or
-                    (cursor.direction == "down" and
-                        keypress.name == 'KEY_SRIGHT')):
+                  (cursor.direction == "across" and
+                   keypress.name == 'KEY_SDOWN') or
+                  (cursor.direction == "down" and
+                   keypress.name == 'KEY_SRIGHT')):
                 cursor.advance_perpendicular()
 
                 if (keypress == '}' and grid.blank_cells_remaining):
@@ -1075,10 +1075,10 @@ def main():
                         cursor.advance_perpendicular()
 
             elif (keypress in ['{', '['] or
-                    (cursor.direction == "across" and
-                        keypress.name == 'KEY_SUP') or
-                    (cursor.direction == "down" and
-                        keypress.name == 'KEY_SLEFT')):
+                  (cursor.direction == "across" and
+                   keypress.name == 'KEY_SUP') or
+                  (cursor.direction == "down" and
+                   keypress.name == 'KEY_SLEFT')):
                 cursor.retreat_perpendicular()
 
                 if (keypress == '{' and grid.blank_cells_remaining):
