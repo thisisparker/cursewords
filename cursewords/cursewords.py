@@ -167,10 +167,7 @@ class Grid:
 
     def number(self):
         numbered_squares = []
-        for word in self.words['across']:
-            numbered_squares.append(word[0])
-
-        for word in self.words['down']:
+        for word in self.words['across'] + self.words['down']:
             if word[0] not in numbered_squares:
                 numbered_squares.append(word[0])
 
@@ -835,7 +832,7 @@ def main():
                     for pos in grid.cells):
                 puzzle_complete = True
                 with term.location(x=grid_x, y=2):
-                    print(term.reverse("You've completed the puzzle!"),
+                    print(term.reverse("You've completed the puzzle! 🎉"),
                             term.clear_eol)
                 timer.show_time()
                 timer.active = False
