@@ -76,11 +76,9 @@ class Grid:
         self.title = ''
         self.author = ''
 
-        self.across_words = []
-        self.down_words = []
-        self.down_words_grouped = []
-        self.across_clues = []
-        self.down_clues = []
+        self.words = dict()
+        self.clues = dict()
+        self.spaces = dict()
 
         self.start_time = 0
         self.timer_active = False
@@ -104,8 +102,6 @@ class Grid:
                 self.cells[(j, i)] = Cell(
                         self.puzfile.solution[idx],
                         entry)
-
-        self.words = dict()
 
         self.words['across'] = []
         for i in range(self.row_count):
@@ -139,11 +135,9 @@ class Grid:
 
         num = self.puzfile.clue_numbering()
 
-        self.clues = dict()
         self.clues['across'] = [word['clue'] for word in num.across]
         self.clues['down'] = [word['clue'] for word in num.down]
 
-        self.spaces = dict()
         self.spaces['across'] = [(j,i) for i in range(self.column_count)
                                         for j in range(self.row_count)
                                         if self.cells[(j,i)].is_letter()]
