@@ -1008,12 +1008,16 @@ def main():
                 modified_since_save = True
                 cursor.advance_within_word(overwrite_mode, wrap_mode=True)
 
-            # Backspace key
-            elif not puzzle_complete and keypress.name == 'KEY_BACKSPACE':
+            # Deletion keys
+            elif (not puzzle_complete and
+                    keypress.name in ['KEY_BACKSPACE', 'KEY_DELETE']):
                 current_cell.clear()
                 overwrite_mode = True
                 modified_since_save = True
-                cursor.retreat_within_word(end_placement=True)
+                if keypress.name == 'KEY_BACKSPACE':
+                    cursor.retreat_within_word(end_placement=True)
+                elif keypress.name == 'KEY_DELETE':
+                    cursor.advance_within_word(overwrite_mode=True)
 
             # Navigation
             elif (keypress.name in ['KEY_TAB'] or
