@@ -718,7 +718,7 @@ def main():
     if term.height < min_height:
         necessary_resize.append("taller")
 
-    if necessary_resize:
+    if sys.stdout.isatty() and necessary_resize:
         exit_text = textwrap.dedent("""\
         This puzzle is {} columns wide and {} rows tall.
         The terminal window must be {} to properly display 
@@ -800,7 +800,7 @@ def main():
     puzzle_paused = False
     puzzle_complete = False
     modified_since_save = False
-    to_quit = False
+    to_quit = not sys.stdout.isatty()
 
     timer = Timer(grid, starting_seconds=int(grid.start_time),
                   is_running=True, active=bool(int(grid.timer_active)))
