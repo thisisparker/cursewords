@@ -132,8 +132,9 @@ class Grid:
 
         self.words['down'].sort(key=lambda word: (word[0][1], word[0][0]))
 
-        num = self.puzfile.clue_numbering()
+        self.number()
 
+        num = self.puzfile.clue_numbering()
         self.clues['across'] = [word['clue'] for word in num.across]
         self.clues['down'] = [word['clue'] for word in num.down]
 
@@ -143,6 +144,7 @@ class Grid:
         self.spaces['down'] = [(j,i) for j in range(self.row_count)
                                         for i in range(self.column_count)
                                         if self.cells[(j,i)].is_letter()]
+
 
         if self.puzfile.has_markup():
             markup = self.puzfile.markup().markup
@@ -167,26 +169,64 @@ class Grid:
         else:
             self.start_time, self.timer_active = 0, 1
 
-    def draw(self):
-        top_row = self.get_top_row()
-        bottom_row = self.get_bottom_row()
-        middle_row = self.get_middle_row()
-        divider_row = self.get_divider_row()
+    def draw(self, empty=False):
+        grid_rows = []
+        for i in range(self.row_count):
+            rows = [self.term.dim, self.term.dim]
+            for j in range(self.column_count):
+                pos = (j, i)
+                cell = self.cells.get(pos)
+                if i == 0 and j == 0:
+                    rows[0] += characters.ulcorner
+                elif j == 0:
+                    rows[0] += characters.ltee
+                elif i == 0:
+                    rows[0] += characters.ttee
+                else:
+                    rows[0] += characters.bigplus
 
-        print(self.term.move(self.grid_y, self.grid_x)
-                + self.term.dim + top_row + self.term.normal)
-        for index, y_val in enumerate(
-                                range(self.grid_y + 1,
-                                      self.grid_y + self.row_count * 2),
-                                1):
-            if index % 2 == 0:
-                print(self.term.move(y_val, self.grid_x) +
-                      self.term.dim + divider_row + self.term.normal)
-            else:
-                print(self.term.move(y_val, self.grid_x) +
-                      self.term.dim + middle_row + self.term.normal)
-        print(self.term.move(self.grid_y + self.row_count * 2, self.grid_x)
-              + self.term.dim + bottom_row + self.term.normal)
+                rows[1] += characters.vline
+
+                if cell.number and not empty:
+                    small = str(cell.number).translate(characters.small_nums)
+                else:
+                    small = ''
+
+                # This is the right way to do it but as long as I'm doing
+                # the weird term.dim dance I have to write it a little uglier
+                # rows[0] += f'{small:{characters.hline}<3.3}'
+                rows[0] += (self.term.normal +
+                            small +
+                            self.term.dim +
+                            characters.hline * (3 - len(small)))
+
+                if empty:
+                    rows[1] += '   '
+                elif cell.is_block():
+                    rows[1] += characters.squareblock
+                else:
+                    value, markup = self.compile_cell(pos)
+                    value += markup
+                    rows[1] += self.term.normal + ' ' + value + self.term.dim
+
+                if j == self.column_count - 1:
+                    if i == 0:
+                        rows[0] += characters.urcorner
+                    else:
+                        rows[0] += characters.rtee
+                    rows[1] += characters.vline + self.term.normal
+                    rows[0] += self.term.normal
+            grid_rows.extend(rows)
+
+        bottom_row = self.term.dim + characters.llcorner
+        for col in range(1, self.column_count * 4):
+            bottom_row += characters.btee if col % 4 == 0 else characters.hline
+        bottom_row += characters.lrcorner + self.term.normal
+
+        grid_rows.append(bottom_row)
+
+        for index, row in enumerate(grid_rows):
+            print(self.term.move(self.grid_y + index, self.grid_x) + row)
 
     def number(self):
         numbered_squares = []
@@ -198,22 +238,6 @@ class Grid:
 
         for number, square in enumerate(numbered_squares, 1):
             self.cells.get(square).number = number
-
-    def fill(self):
-        for position in self.cells:
-            y_coord, x_coord = self.to_term(position)
-            cell = self.cells[position]
-            if cell.is_letter():
-                self.draw_cell(position)
-            elif cell.is_block():
-                print(self.term.move(y_coord, x_coord - 1) +
-                        self.term.dim + characters.squareblock + self.term.normal)
-
-            if cell.number:
-                small = str(cell.number).translate(characters.small_nums)
-                x_pos = x_coord - 1
-                print(self.term.move(y_coord - 1, x_pos) + small)
-
 
     @property
     def blank_cells_remaining(self):
@@ -300,27 +324,6 @@ class Grid:
         return (term_y, term_x)
 
 
-    def make_row(self, leftmost, middle, divider, rightmost):
-        row = ''
-        for col in range(1, self.column_count * 4):
-            row += divider if col % 4 == 0 else middle
-        return leftmost + row + rightmost
-
-    def get_top_row(self):
-        return self.make_row(characters.ulcorner, characters.hline,
-                             characters.ttee, characters.urcorner)
-
-    def get_bottom_row(self):
-        return self.make_row(characters.llcorner, characters.hline,
-                             characters.btee, characters.lrcorner)
-
-    def get_middle_row(self):
-        return self.make_row(characters.vline, " ", characters.vline,
-                             characters.vline)
-
-    def get_divider_row(self):
-        return self.make_row(characters.ltee, characters.hline,
-                             characters.bigplus, characters.rtee)
 
     def compile_cell(self, position):
         cell = self.cells.get(position)
@@ -733,10 +736,6 @@ def main():
     print(term.enter_fullscreen())
     print(term.clear())
 
-    grid.draw()
-    grid.number()
-    grid.fill()
-
     software_info = 'cursewords v{}'.format(version)
     puzzle_info = '{grid.title} - {grid.author}'.format(grid=grid)
     padding = 2
@@ -751,6 +750,8 @@ def main():
 
     with term.location(x=0, y=0):
         print(term.dim + term.reverse(headline) + term.normal)
+
+    grid.draw()
 
     toolbar = ''
     commands = [("^Q", "quit"),
@@ -887,7 +888,7 @@ def main():
             elif keypress == chr(16) and not puzzle_complete:
                 if timer.is_running:
                     timer.pause()
-                    grid.draw()
+                    grid.draw(empty=True)
 
                     with term.location(**info_location):
                         print('\r\n'.join(['PUZZLE PAUSED' + term.clear_eol,
@@ -898,7 +899,7 @@ def main():
 
                 else:
                     timer.unpause()
-                    grid.fill()
+                    grid.draw()
                     old_word = []
 
                     puzzle_paused = False
