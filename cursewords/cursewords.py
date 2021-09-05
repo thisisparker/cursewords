@@ -98,9 +98,7 @@ class Grid:
             for j in range(self.column_count):
                 idx = i * self.column_count + j
                 entry = self.puzfile.fill[idx]
-                self.cells[(j, i)] = Cell(
-                        self.puzfile.solution[idx],
-                        entry)
+                self.cells[(j, i)] = Cell(self.puzfile.solution[idx], entry)
 
         self.words['across'] = []
         for i in range(self.row_count):
@@ -138,12 +136,12 @@ class Grid:
         self.clues['across'] = [word['clue'] for word in num.across]
         self.clues['down'] = [word['clue'] for word in num.down]
 
-        self.spaces['across'] = [(j,i) for i in range(self.column_count)
-                                        for j in range(self.row_count)
-                                        if self.cells[(j,i)].is_letter()]
-        self.spaces['down'] = [(j,i) for j in range(self.row_count)
-                                        for i in range(self.column_count)
-                                        if self.cells[(j,i)].is_letter()]
+        self.spaces['across'] = [(j, i) for i in range(self.column_count)
+                                 for j in range(self.row_count)
+                                 if self.cells[(j, i)].is_letter()]
+        self.spaces['down'] = [(j, i) for j in range(self.row_count)
+                               for i in range(self.column_count)
+                               if self.cells[(j, i)].is_letter()]
 
 
         if self.puzfile.has_markup():
@@ -253,12 +251,16 @@ class Grid:
 
     def confirm_clear(self):
         confirmation = self.get_notification_input("Clear puzzle? (y/n)",
-                                char_limit=1, blocking=True, timeout=5)
+                                                   char_limit=1,
+                                                   blocking=True,
+                                                   timeout=5)
         return confirmation.lower() == 'y'
 
     def confirm_reset(self):
         confirmation = self.get_notification_input("Reset puzzle? (y/n)",
-                                char_limit=1, blocking=True, timeout=5)
+                                                   char_limit=1,
+                                                   blocking=True,
+                                                   timeout=5)
         return confirmation.lower() == 'y'
 
     def save(self, filename):
@@ -362,7 +364,7 @@ class Grid:
         print(self.term.move(*self.to_term(position)) + value)
 
     def get_notification_input(self, message, timeout=5, char_limit=3,
-            input_condition=str.isalnum, blocking=False):
+                               input_condition=str.isalnum, blocking=False):
 
         # If there's already a notification timer running, stop it.
         try:
@@ -372,9 +374,9 @@ class Grid:
 
         input_phrase = message + " "
         key_input_place = len(input_phrase)
-        print(self.term.move(*self.notification_area)
-                + self.term.reverse(input_phrase)
-                + self.term.clear_eol)
+        print(self.term.move(*self.notification_area) +
+              self.term.reverse(input_phrase) +
+              self.term.clear_eol)
 
         user_input = ''
         keypress = None
@@ -383,13 +385,15 @@ class Grid:
             if input_condition(keypress):
                 user_input += keypress
                 print(self.term.move(self.notification_area[0],
-                        self.notification_area[1] + key_input_place),
-                        user_input)
-            elif keypress.name in ['KEY_DELETE']:
+                                     self.notification_area[1] +
+                                     key_input_place),
+                      user_input)
+            elif keypress.name in ['KEY_DELETE', 'KEY_BACKSPACE']:
                 user_input = user_input[:-1]
                 print(self.term.move(self.notification_area[0],
-                        self.notification_area[1] + key_input_place),
-                        user_input + self.term.clear_eol)
+                                     self.notification_area[1] +
+                                     key_input_place),
+                      user_input + self.term.clear_eol)
             elif blocking and keypress.name not in ['KEY_ENTER', 'KEY_ESCAPE']:
                 continue
             else:
@@ -399,10 +403,10 @@ class Grid:
 
     def send_notification(self, message, timeout=5):
         self.notification_timer = threading.Timer(timeout,
-                self.clear_notification_area)
+                                                  self.clear_notification_area)
         self.notification_timer.daemon = True
-        print(self.term.move(*self.notification_area)
-                + self.term.reverse(message) + self.term.clear_eol)
+        print(self.term.move(*self.notification_area) +
+              self.term.reverse(message) + self.term.clear_eol)
         self.notification_timer.start()
 
     def clear_notification_area(self):
@@ -462,7 +466,7 @@ class Cursor:
 
         if not overwrite_mode:
             ordered_spaces = [pos for pos in ordered_spaces
-                    if self.grid.cells.get(pos).is_blankish()]
+                              if self.grid.cells.get(pos).is_blankish()]
 
         return next(iter(ordered_spaces), None)
 
@@ -482,7 +486,7 @@ class Cursor:
     def advance_to_next_word(self, blank_placement=False):
         word_group = self.grid.words[self.direction]
         next_words = (self.grid.words['across'] if self.direction == 'down'
-                        else self.grid.words['down'])
+                      else self.grid.words['down'])
 
         while self.current_word() not in word_group:
             self.retreat()
@@ -516,7 +520,7 @@ class Cursor:
 
         word_group = self.grid.words[self.direction]
         next_words = (self.grid.words['across'] if self.direction == 'down'
-                        else self.grid.words['down'])
+                      else self.grid.words['down'])
 
         while self.current_word() not in word_group:
             self.advance()
@@ -544,7 +548,7 @@ class Cursor:
 
     def earliest_blank_in_word(self):
         blanks = (pos for pos in self.current_word()
-                    if self.grid.cells.get(pos).is_blankish())
+                  if self.grid.cells.get(pos).is_blankish())
         return next(blanks, None)
 
     def move_right(self):
@@ -581,7 +585,7 @@ class Cursor:
         pos = self.position
 
         word = next((w for w in self.grid.words[self.direction] if pos in w),
-                            [pos])
+                    [pos])
 
         return word
 
@@ -590,12 +594,11 @@ class Cursor:
                                                input_condition=str.isdigit)
         if num:
             pos = next((pos for pos in self.grid.cells
-                        if self.grid.cells.get(pos).number == int(num)),
-                        None)
+                        if self.grid.cells.get(pos).number == int(num)), None)
             if pos:
                 self.position = pos
                 self.grid.send_notification(
-                        "Moved cursor to square {}.".format(num))
+                    "Moved cursor to square {}.".format(num))
             else:
                 self.grid.send_notification("Not a valid number.")
         else:
@@ -622,8 +625,8 @@ class Timer(threading.Thread):
 
         while self.active:
             if self.is_running:
-                self.time_passed = (self.starting_seconds
-                                   + int(time.time() - self.start_time))
+                self.time_passed = (self.starting_seconds +
+                                    int(time.time() - self.start_time))
                 self.show_time()
 
             time.sleep(0.5)
@@ -632,8 +635,8 @@ class Timer(threading.Thread):
         y_coord = 2
         x_coord = self.grid.grid_x + self.grid.column_count * 4 - 7
 
-        print(self.grid.term.move(y_coord, x_coord)
-                + self.display_format())
+        print(self.grid.term.move(y_coord, x_coord) +
+              self.display_format())
 
     def display_format(self):
         time_amount = self.time_passed
@@ -650,7 +653,7 @@ class Timer(threading.Thread):
         time_amount = self.time_passed
 
         save_string = '{t},{r}'.format(
-                t=int(time_amount), r=int(self.active))
+            t=int(time_amount), r=int(self.active))
 
         save_bytes = save_string.encode(puz.ENCODING)
 
@@ -672,13 +675,15 @@ def main():
         version = f.read().strip()
 
     parser = argparse.ArgumentParser(
-            prog='cursewords',
-            description="""A terminal-based crossword puzzle solving interface.""")
+        prog='cursewords',
+        description="""A terminal-based crossword puzzle \
+        solving interface.""")
 
     parser.add_argument('filename', metavar='PUZfile',
-            help="""path of puzzle file in the AcrossLite .puz format""")
+                        help="""path of puzzle file in the \
+                        AcrossLite .puz format""")
     parser.add_argument('--downs-only', action='store_true',
-            help="""displays only the down clues""")
+                        help="""displays only the down clues""")
     parser.add_argument('--version', action='version', version=version)
 
     args = parser.parse_args()
@@ -702,15 +707,15 @@ def main():
     puzzle_height = 2 * grid.row_count
 
     min_width = (puzzle_width
-                + grid_x
-                + 2) # a little breathing room
+                 + grid_x
+                 + 2) # a little breathing room
 
     min_height = (puzzle_height
-                 + grid_y # includes the top bar + timer
-                 + 2 # padding above clues
-                 + 3 # clue area
-                 + 2 # toolbar
-                 + 2) # again, just some breathing room
+                  + grid_y # includes the top bar + timer
+                  + 2 # padding above clues
+                  + 3 # clue area
+                  + 2 # toolbar
+                  + 2) # again, just some breathing room
 
     necessary_resize = []
     if term.width < min_width:
@@ -745,8 +750,8 @@ def main():
         puzzle_info = "{}…".format(puzzle_info[:pz_width - 1])
 
     headline = " {:<{pz_w}}{:>{sw_w}} ".format(
-            puzzle_info, software_info,
-            pz_w=pz_width, sw_w=sw_width)
+        puzzle_info, software_info,
+        pz_w=pz_width, sw_w=sw_width)
 
     with term.location(x=0, y=0):
         print(term.dim + term.reverse(headline) + term.normal)
@@ -787,9 +792,9 @@ def main():
                      term.width - 2 - grid_x)
 
     clue_wrapper = textwrap.TextWrapper(
-            width=clue_width,
-            max_lines=3,
-            subsequent_indent=grid_x * ' ')
+        width=clue_width,
+        max_lines=3,
+        subsequent_indent=grid_x * ' ')
 
     start_pos = grid.words['across'][0][0]
     cursor = Cursor(start_pos, "across", grid)
@@ -830,10 +835,10 @@ def main():
                     clue = ""
 
                 num = (str(grid.cells.get(cursor.current_word()[0]).number)
-                        if clue else "")
+                       if clue else "")
 
-                compiled_clue = (num + " " + cursor.direction.upper()
-                                + ": " + clue) if num else ""
+                compiled_clue = (num + " " + cursor.direction.upper() +
+                                 ": " + clue) if num else ""
                 wrapped_clue = clue_wrapper.wrap(compiled_clue)
                 wrapped_clue += [''] * (3 - len(wrapped_clue))
                 wrapped_clue = [line + term.clear_eol for line in wrapped_clue]
@@ -845,8 +850,8 @@ def main():
                 #    prints
                 #           like
                 #                this after each newline
-                print(term.move(info_location['y'], info_location['x'])
-                        + '\r\n'.join(wrapped_clue))
+                print(term.move(info_location['y'], info_location['x']) +
+                      '\r\n'.join(wrapped_clue))
 
             # Otherwise, just draw the old square now that it's not under
             # the cursor
@@ -858,11 +863,11 @@ def main():
 
             # Check if the puzzle is complete!
             if not puzzle_complete and all(grid.cells.get(pos).is_correct()
-                    for pos in grid.cells):
+                                           for pos in grid.cells):
                 puzzle_complete = True
                 with term.location(x=grid_x, y=2):
                     print(term.reverse("You've completed the puzzle! 🎉"),
-                            term.clear_eol)
+                          term.clear_eol)
                 timer.show_time()
                 timer.active = False
 
@@ -932,8 +937,8 @@ def main():
             # ctrl-c
             elif keypress == chr(3):
                 group = grid.get_notification_input(
-                        "Check (l)etter, (w)ord, or (p)uzzle?",
-                        char_limit=1)
+                    "Check (l)etter, (w)ord, or (p)uzzle?",
+                    char_limit=1)
                 scope = ''
                 if group.lower() == 'l':
                     scope = 'letter'
@@ -947,7 +952,7 @@ def main():
 
                 if scope:
                     grid.send_notification("Checked {scope} for errors.".
-                            format(scope=scope))
+                                           format(scope=scope))
                 else:
                     grid.send_notification("No valid input entered.")
 
@@ -976,8 +981,8 @@ def main():
             # ctrl-r
             elif keypress == chr(18):
                 group = grid.get_notification_input(
-                        "Reveal (l)etter, (w)ord, or (p)uzzle?",
-                        char_limit=1)
+                    "Reveal (l)etter, (w)ord, or (p)uzzle?",
+                    char_limit=1)
                 scope = ''
                 if group.lower() == 'l':
                     scope = 'letter'
@@ -991,7 +996,7 @@ def main():
 
                 if scope:
                     grid.send_notification("Revealed answers for {scope}.".
-                            format(scope=scope))
+                                           format(scope=scope))
                 else:
                     grid.send_notification("No valid input entered.")
 
@@ -1011,7 +1016,7 @@ def main():
 
             # Deletion keys
             elif (not puzzle_complete and
-                    keypress.name in ['KEY_BACKSPACE', 'KEY_DELETE']):
+                  keypress.name in ['KEY_BACKSPACE', 'KEY_DELETE']):
                 current_cell.clear()
                 overwrite_mode = True
                 modified_since_save = True
