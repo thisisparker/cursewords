@@ -13,6 +13,7 @@
 #! /usr/bin/env python3
 
 import argparse
+import math
 import os
 import sys
 import time
@@ -92,7 +93,7 @@ class Grid:
         self.column_count = puzfile.width
 
         self.title = puzfile.title
-        self.author = puzfile.author
+        self.author = puzfile.author.strip()
 
         for i in range(self.row_count):
             for j in range(self.column_count):
@@ -133,8 +134,8 @@ class Grid:
         self.number()
 
         num = self.puzfile.clue_numbering()
-        self.clues['across'] = [word['clue'] for word in num.across]
-        self.clues['down'] = [word['clue'] for word in num.down]
+        self.clues['across'] = num.across
+        self.clues['down'] = num.down
 
         self.spaces['across'] = [(j, i) for i in range(self.column_count)
                                  for j in range(self.row_count)
@@ -167,7 +168,7 @@ class Grid:
         else:
             self.start_time, self.timer_active = 0, 1
 
-    def draw(self, empty=False):
+    def render_grid(self, empty=False):
         grid_rows = []
         for i in range(self.row_count):
             rows = [self.term.dim, self.term.dim]
@@ -223,6 +224,10 @@ class Grid:
 
         grid_rows.append(bottom_row)
 
+        return grid_rows
+
+    def draw(self, empty=False):
+        grid_rows = self.render_grid(empty=empty)
         for index, row in enumerate(grid_rows):
             print(self.term.move(self.grid_y + index, self.grid_x) + row)
 
@@ -324,8 +329,6 @@ class Grid:
         term_x = self.grid_x + (4 * point_x) + 2
         term_y = self.grid_y + (2 * point_y) + 1
         return (term_y, term_x)
-
-
 
     def compile_cell(self, position):
         cell = self.cells.get(position)
@@ -689,6 +692,7 @@ def main():
     args = parser.parse_args()
     filename = args.filename
     downs_only = args.downs_only
+    print_mode = not sys.stdout.isatty()
 
     try:
         puzfile = puz.read(filename)
@@ -702,6 +706,50 @@ def main():
 
     grid = Grid(grid_x, grid_y, term)
     grid.load(puzfile)
+
+    if print_mode:
+        print(f'{grid.title} by {grid.author}')
+        print()
+
+        print_width = 92
+
+        clue_lines = ['ACROSS', '']
+        clue_lines.extend(['. '.join([str(entry['num']), entry['clue']])
+                           for entry in grid.clues['across']])
+        clue_lines.extend(['', 'DOWN', ''])
+        clue_lines.extend(['. '.join([str(entry['num']), entry['clue']])
+                           for entry in grid.clues['down']])
+
+        grid_lines = [term.strip(l) for l in grid.render_grid()]
+
+        current_clue = []
+        current_line = ''
+        f_width = print_width - len(grid_lines[0]) - 2
+
+        while grid_lines:
+            current_clue = (current_clue or
+                            textwrap.wrap(clue_lines.pop(0), f_width) or [''])
+            current_line = current_clue.pop(0)
+            current_grid_line = grid_lines.pop(0)
+            print(f'{current_line:{f_width}.{f_width}}  {current_grid_line}')
+
+        wrapped_clue_lines = []
+        num_cols = 3
+        column_width = print_width // num_cols - 1
+        for l in clue_lines:
+            if len(l) < column_width:
+                wrapped_clue_lines.append(l)
+            else:
+                wrapped_clue_lines.extend(textwrap.wrap(l, width=column_width))
+
+        num_wrapped_rows = math.ceil(len(wrapped_clue_lines)/num_cols)
+
+        for r in range(num_wrapped_rows):
+            clue_parts = [wrapped_clue_lines[i] for i in
+                          range(r, len(wrapped_clue_lines), num_wrapped_rows)]
+            current_row = f'{{:{column_width}}}  ' * len(clue_parts)
+            print(current_row.format(*clue_parts))
+        sys.exit()
 
     puzzle_width = max(4 * grid.column_count, 40)
     puzzle_height = 2 * grid.row_count
@@ -723,7 +771,7 @@ def main():
     if term.height < min_height:
         necessary_resize.append("taller")
 
-    if sys.stdout.isatty() and necessary_resize:
+    if necessary_resize:
         exit_text = textwrap.dedent("""\
         This puzzle is {} columns wide and {} rows tall.
         The terminal window must be {} to properly display 
@@ -738,8 +786,8 @@ def main():
         by cursewords. Sorry about that!""")
         sys.exit(' '.join(exit_text.splitlines()))
 
-    print(term.enter_fullscreen())
-    print(term.clear())
+    print(term.enter_fullscreen(), end='')
+    print(term.clear(), end='')
 
     software_info = 'cursewords v{}'.format(version)
     puzzle_info = '{grid.title} - {grid.author}'.format(grid=grid)
@@ -757,6 +805,7 @@ def main():
         print(term.dim + term.reverse(headline) + term.normal)
 
     grid.draw()
+
 
     toolbar = ''
     commands = [("^Q", "quit"),
@@ -828,7 +877,7 @@ def main():
                 if cursor.current_word() in grid.words[cursor.direction]:
                     num_index = grid.words[cursor.direction].index(
                         cursor.current_word())
-                    clue = grid.clues[cursor.direction][num_index]
+                    clue = grid.clues[cursor.direction][num_index]['clue']
                     if cursor.direction == 'across' and downs_only:
                         clue = "—"
                 else:
