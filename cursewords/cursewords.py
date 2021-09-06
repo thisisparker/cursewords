@@ -687,12 +687,16 @@ def main():
                         AcrossLite .puz format""")
     parser.add_argument('--downs-only', action='store_true',
                         help="""displays only the down clues""")
+    parser.add_argument('--print', action='store_true',
+                        help="""writes formatted puzzle and clues to \
+                                standard out, instead of opening \
+                                interactive solver""")
     parser.add_argument('--version', action='version', version=version)
 
     args = parser.parse_args()
     filename = args.filename
     downs_only = args.downs_only
-    print_mode = not sys.stdout.isatty()
+    print_mode = args.print or not sys.stdout.isatty()
 
     try:
         puzfile = puz.read(filename)
@@ -708,10 +712,7 @@ def main():
     grid.load(puzfile)
 
     if print_mode:
-        print(f'{grid.title} by {grid.author}')
-        print()
-
-        print_width = 92
+        print_width = 92 if not sys.stdout.isatty() else min(term.width, 96)
 
         clue_lines = ['ACROSS', '']
         clue_lines.extend(['. '.join([str(entry['num']), entry['clue']])
@@ -722,16 +723,25 @@ def main():
 
         grid_lines = [term.strip(l) for l in grid.render_grid()]
 
+        if print_width < len(grid_lines[0]):
+            sys.exit(f'Puzzle is {len(grid_lines[0])} columns wide, cannot be printed at {print_width} columns')
+
+        print(f'{grid.title} by {grid.author}')
+        print()
+
         current_clue = []
         current_line = ''
         f_width = print_width - len(grid_lines[0]) - 2
 
-        while grid_lines:
-            current_clue = (current_clue or
-                            textwrap.wrap(clue_lines.pop(0), f_width) or [''])
-            current_line = current_clue.pop(0)
-            current_grid_line = grid_lines.pop(0)
-            print(f'{current_line:{f_width}.{f_width}}  {current_grid_line}')
+        if f_width > 12:
+            while grid_lines:
+                current_clue = (current_clue or
+                                textwrap.wrap(clue_lines.pop(0), f_width) or [''])
+                current_line = current_clue.pop(0)
+                current_grid_line = grid_lines.pop(0)
+                print(f'{current_line:{f_width}.{f_width}}  {current_grid_line}')
+        else:
+            print('\n'.join(grid_lines))
 
         wrapped_clue_lines = []
         num_cols = 3
@@ -747,7 +757,7 @@ def main():
         for r in range(num_wrapped_rows):
             clue_parts = [wrapped_clue_lines[i] for i in
                           range(r, len(wrapped_clue_lines), num_wrapped_rows)]
-            current_row = f'{{:{column_width}}}  ' * len(clue_parts)
+            current_row = f'{{:{column_width}}} ' * len(clue_parts)
             print(current_row.format(*clue_parts))
         sys.exit()
 
