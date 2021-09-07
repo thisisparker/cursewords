@@ -715,10 +715,10 @@ def main():
         print_width = 92 if not sys.stdout.isatty() else min(term.width, 96)
 
         clue_lines = ['ACROSS', '']
-        clue_lines.extend(['. '.join([str(entry['num']), entry['clue']])
+        clue_lines.extend(['. '.join([str(entry['num']), entry['clue'].strip()])
                            for entry in grid.clues['across']])
         clue_lines.extend(['', 'DOWN', ''])
-        clue_lines.extend(['. '.join([str(entry['num']), entry['clue']])
+        clue_lines.extend(['. '.join([str(entry['num']), entry['clue'].strip()])
                            for entry in grid.clues['down']])
 
         grid_lines = [term.strip(l) for l in grid.render_grid()]
@@ -726,7 +726,7 @@ def main():
         if print_width < len(grid_lines[0]):
             sys.exit(f'Puzzle is {len(grid_lines[0])} columns wide, cannot be printed at {print_width} columns')
 
-        print(f'{grid.title} by {grid.author}')
+        print(f'{grid.title} - {grid.author}')
         print()
 
         current_clue = []
@@ -736,12 +736,17 @@ def main():
         if f_width > 12:
             while grid_lines:
                 current_clue = (current_clue or
-                                textwrap.wrap(clue_lines.pop(0), f_width) or [''])
+                                textwrap.wrap(clue_lines.pop(0), f_width) or
+                                [''])
                 current_line = current_clue.pop(0)
                 current_grid_line = grid_lines.pop(0)
                 print(f'{current_line:{f_width}.{f_width}}  {current_grid_line}')
         else:
             print('\n'.join(grid_lines))
+
+        remainder = ' '.join(current_clue)
+        if remainder:
+            clue_lines.insert(0, remainder)
 
         wrapped_clue_lines = []
         num_cols = 3
@@ -757,7 +762,7 @@ def main():
         for r in range(num_wrapped_rows):
             clue_parts = [wrapped_clue_lines[i] for i in
                           range(r, len(wrapped_clue_lines), num_wrapped_rows)]
-            current_row = f'{{:{column_width}}} ' * len(clue_parts)
+            current_row = '  '.join([f'{{:{column_width}}}'] * len(clue_parts))
             print(current_row.format(*clue_parts))
         sys.exit()
 
