@@ -739,7 +739,7 @@ class Printer:
             clue_lines.insert(0, remainder)
 
         wrapped_clue_lines = []
-        num_cols = 3
+        num_cols = 3 if print_width > 64 else 2
         column_width = print_width // num_cols - 2
         for l in clue_lines:
             if len(l) < column_width:
