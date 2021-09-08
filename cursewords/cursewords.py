@@ -13,7 +13,6 @@
 #! /usr/bin/env python3
 
 import argparse
-import math
 import functools
 import os
 import sys
@@ -25,6 +24,7 @@ from blessed import Terminal
 
 from . import characters
 from . import puz
+from .printer import printer_output
 
 echo = functools.partial(print, end='', flush=True)
 
@@ -682,86 +682,6 @@ class Timer(threading.Thread):
         self.is_running = True
 
 
-class Printer:
-    def __init__(self, grid, style=None, width=None, downs_only=False):
-        self.grid = grid
-        self.term = grid.term
-        self.style = style
-
-        self.width = width
-
-        self.downs_only = downs_only
-
-    def output(self):
-        print_width = self.width or (92 if not sys.stdout.isatty()
-                                     else min(self.term.width, 96))
-
-        clue_lines = ['ACROSS', '']
-        clue_lines.extend(['. '.join([str(entry['num']), entry['clue'].strip()])
-                           for entry in self.grid.clues['across']])
-        clue_lines.append('')
-
-        if self.downs_only:
-            clue_lines = []
-
-        clue_lines.extend(['DOWN', ''])
-        clue_lines.extend(['. '.join([str(entry['num']), entry['clue'].strip()])
-                           for entry in self.grid.clues['down']])
-
-        render_args = ({'blank': True} if self.style == 'blank' else
-                       {'solution': True} if self.style == 'solution' else
-                       {})
-
-        grid_lines = [self.term.strip(l) for l in
-                      self.grid.render_grid(**render_args)]
-        grid_lines.append('')
-
-        if print_width < len(grid_lines[0]):
-            sys.exit(f'Puzzle is {len(grid_lines[0])} columns wide, '
-                     f'cannot be printed at {print_width} columns.')
-
-        print_width = min(print_width, 2 * len(grid_lines[0]))
-
-        print(f'{self.grid.title} - {self.grid.author}')
-        print()
-
-        current_clue = []
-        current_line = ''
-        f_width = print_width - len(grid_lines[0]) - 2
-
-        if f_width > 12:
-            while grid_lines:
-                current_clue = (current_clue or
-                                textwrap.wrap(clue_lines.pop(0), f_width) or
-                                [''])
-                current_line = current_clue.pop(0)
-                current_grid_line = grid_lines.pop(0)
-                print(f'{current_line:{f_width}.{f_width}}  {current_grid_line}')
-        else:
-            print('\n'.join(grid_lines))
-
-        remainder = ' '.join(current_clue)
-        if remainder:
-            clue_lines.insert(0, remainder)
-
-        wrapped_clue_lines = []
-        num_cols = 3 if print_width > 64 else 2
-        column_width = print_width // num_cols - 2
-        for l in clue_lines:
-            if len(l) < column_width:
-                wrapped_clue_lines.append(l)
-            else:
-                wrapped_clue_lines.extend(textwrap.wrap(l, width=column_width))
-
-        num_wrapped_rows = math.ceil(len(wrapped_clue_lines)/num_cols)
-
-        for r in range(num_wrapped_rows):
-            clue_parts = [wrapped_clue_lines[i] for i in
-                          range(r, len(wrapped_clue_lines), num_wrapped_rows)]
-            current_row = '  '.join([f'{{:{column_width}}}'] * len(clue_parts))
-            print(current_row.format(*clue_parts))
-
-
 def main():
     version_dir = os.path.abspath(os.path.dirname((__file__)))
     version_file = os.path.join(version_dir, 'version')
@@ -778,16 +698,20 @@ def main():
                         AcrossLite .puz format""")
     parser.add_argument('--downs-only', action='store_true',
                         help="""displays only the down clues""")
-    parser.add_argument('--print', action='store_true',
+
+    print_group =  parser.add_argument_group('print mode', 'Options for '
+        'writing to standard out instead of entering the interactive '
+        'solver')
+    print_group.add_argument('--print', action='store_true',
                         help="""writes formatted puzzle and clues to \
                                 standard out, instead of opening \
                                 interactive solver""")
 
-    print_fill = parser.add_mutually_exclusive_group()
+    print_fill = print_group.add_mutually_exclusive_group()
     print_fill.add_argument('--blank', action='store_true')
     print_fill.add_argument('--solution', action='store_true')
 
-    parser.add_argument('--width', action='store', type=int)
+    print_group.add_argument('--width', action='store', type=int)
 
     parser.add_argument('--version', action='version', version=version)
 
@@ -795,7 +719,9 @@ def main():
     filename = args.filename
     downs_only = args.downs_only
     print_mode = args.print or not sys.stdout.isatty()
-    print_style = 'solution' if args.solution else 'blank' if args.blank else None
+    print_style = ('solution' if args.solution
+                   else 'blank' if args.blank
+                   else None)
     print_width = args.width
 
     try:
@@ -812,9 +738,8 @@ def main():
     grid.load(puzfile)
 
     if print_mode:
-        printer = Printer(grid, style=print_style, width=print_width,
-                          downs_only=downs_only)
-        printer.output()
+        printer_output(grid, style=print_style, width=print_width,
+                       downs_only=downs_only)
         sys.exit()
 
     puzzle_width = max(4 * grid.column_count, 40)
