@@ -1,4 +1,6 @@
-﻿import functools
+﻿# pylint: skip-file
+
+import functools
 import operator
 import math
 import string

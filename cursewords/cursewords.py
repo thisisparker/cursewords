@@ -389,8 +389,8 @@ class Grid:
         input_phrase = message + " "
         key_input_place = len(input_phrase)
         echo(self.term.move(*self.notification_area) +
-              self.term.reverse(input_phrase) +
-              self.term.clear_eol)
+             self.term.reverse(input_phrase) +
+             self.term.clear_eol)
 
         user_input = ''
         keypress = None
@@ -399,15 +399,15 @@ class Grid:
             if input_condition(keypress):
                 user_input += keypress
                 echo(self.term.move(self.notification_area[0],
-                                     self.notification_area[1] +
-                                     key_input_place),
-                      user_input)
+                                    self.notification_area[1] +
+                                    key_input_place),
+                     user_input)
             elif keypress.name in ['KEY_DELETE', 'KEY_BACKSPACE']:
                 user_input = user_input[:-1]
                 echo(self.term.move(self.notification_area[0],
-                                     self.notification_area[1] +
-                                     key_input_place),
-                      user_input + self.term.clear_eol)
+                                    self.notification_area[1] +
+                                    key_input_place),
+                     user_input + self.term.clear_eol)
             elif blocking and keypress.name not in ['KEY_ENTER', 'KEY_ESCAPE']:
                 continue
             else:
@@ -420,7 +420,7 @@ class Grid:
                                                   self.clear_notification_area)
         self.notification_timer.daemon = True
         echo(self.term.move(*self.notification_area) +
-              self.term.reverse(message) + self.term.clear_eol)
+             self.term.reverse(message) + self.term.clear_eol)
         self.notification_timer.start()
 
     def clear_notification_area(self):
@@ -650,7 +650,7 @@ class Timer(threading.Thread):
         x_coord = self.grid.grid_x + self.grid.column_count * 4 - 7
 
         echo(self.grid.term.move(y_coord, x_coord) +
-              self.display_format())
+             self.display_format())
 
     def display_format(self):
         time_amount = self.time_passed
@@ -699,11 +699,11 @@ def main():
     parser.add_argument('--downs-only', action='store_true',
                         help="""displays only the down clues""")
 
-    print_group =  parser.add_argument_group('print mode', 'Options for '
-        'writing to standard out instead of entering the interactive '
+    print_group = parser.add_argument_group('print mode', 'Options for ' \
+        'writing to standard out instead of entering the interactive ' \
         'solver')
     print_group.add_argument('--print', action='store_true',
-                        help="""writes formatted puzzle and clues to \
+                             help="""writes formatted puzzle and clues to \
                                 standard out, instead of opening \
                                 interactive solver""")
 
@@ -891,7 +891,7 @@ def main():
                 #           like
                 #                this after each newline
                 echo(term.move(info_location['y'], info_location['x']) +
-                      '\r\n'.join(wrapped_clue))
+                     '\r\n'.join(wrapped_clue))
 
             # Otherwise, just draw the old square now that it's not under
             # the cursor
@@ -907,7 +907,7 @@ def main():
                 puzzle_complete = True
                 with term.location(x=grid_x, y=2):
                     echo(term.reverse("You've completed the puzzle! 🎉"),
-                          term.clear_eol)
+                         term.clear_eol)
                 timer.show_time()
                 timer.active = False
 
@@ -937,8 +937,8 @@ def main():
 
                     with term.location(**info_location):
                         echo('\r\n'.join(['PUZZLE PAUSED' + term.clear_eol,
-                                           term.clear_eol,
-                                           term.clear_eol]))
+                                          term.clear_eol,
+                                          term.clear_eol]))
 
                     puzzle_paused = True
 
