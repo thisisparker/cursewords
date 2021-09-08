@@ -14,6 +14,7 @@
 
 import argparse
 import math
+import functools
 import os
 import sys
 import time
@@ -26,6 +27,7 @@ from blessed import Terminal
 
 from . import characters
 
+echo = functools.partial(print, end='', flush=True)
 
 class Cell:
     def __init__(self, solution, entry=None):
@@ -234,7 +236,7 @@ class Grid:
     def draw(self, empty=False):
         grid_rows = self.render_grid(empty=empty)
         for index, row in enumerate(grid_rows):
-            print(self.term.move(self.grid_y + index, self.grid_x) + row)
+            echo(self.term.move(self.grid_y + index, self.grid_x) + row)
 
     def number(self):
         numbered_squares = []
@@ -359,17 +361,17 @@ class Grid:
     def draw_cell(self, position):
         value, markup = self.compile_cell(position)
         value += markup
-        print(self.term.move(*self.to_term(position)) + value)
+        echo(self.term.move(*self.to_term(position)) + value)
 
     def draw_highlighted_cell(self, position):
         value, markup = self.compile_cell(position)
         value = self.term.underline(value) + markup
-        print(self.term.move(*self.to_term(position)) + value)
+        echo(self.term.move(*self.to_term(position)) + value)
 
     def draw_cursor_cell(self, position):
         value, markup = self.compile_cell(position)
         value = self.term.reverse(value) + markup
-        print(self.term.move(*self.to_term(position)) + value)
+        echo(self.term.move(*self.to_term(position)) + value)
 
     def get_notification_input(self, message, timeout=5, char_limit=3,
                                input_condition=str.isalnum, blocking=False):
@@ -382,7 +384,7 @@ class Grid:
 
         input_phrase = message + " "
         key_input_place = len(input_phrase)
-        print(self.term.move(*self.notification_area) +
+        echo(self.term.move(*self.notification_area) +
               self.term.reverse(input_phrase) +
               self.term.clear_eol)
 
@@ -392,13 +394,13 @@ class Grid:
             keypress = self.term.inkey(timeout)
             if input_condition(keypress):
                 user_input += keypress
-                print(self.term.move(self.notification_area[0],
+                echo(self.term.move(self.notification_area[0],
                                      self.notification_area[1] +
                                      key_input_place),
                       user_input)
             elif keypress.name in ['KEY_DELETE', 'KEY_BACKSPACE']:
                 user_input = user_input[:-1]
-                print(self.term.move(self.notification_area[0],
+                echo(self.term.move(self.notification_area[0],
                                      self.notification_area[1] +
                                      key_input_place),
                       user_input + self.term.clear_eol)
@@ -413,12 +415,12 @@ class Grid:
         self.notification_timer = threading.Timer(timeout,
                                                   self.clear_notification_area)
         self.notification_timer.daemon = True
-        print(self.term.move(*self.notification_area) +
+        echo(self.term.move(*self.notification_area) +
               self.term.reverse(message) + self.term.clear_eol)
         self.notification_timer.start()
 
     def clear_notification_area(self):
-        print(self.term.move(*self.notification_area) + self.term.clear_eol)
+        echo(self.term.move(*self.notification_area) + self.term.clear_eol)
 
 
 class Cursor:
@@ -643,7 +645,7 @@ class Timer(threading.Thread):
         y_coord = 2
         x_coord = self.grid.grid_x + self.grid.column_count * 4 - 7
 
-        print(self.grid.term.move(y_coord, x_coord) +
+        echo(self.grid.term.move(y_coord, x_coord) +
               self.display_format())
 
     def display_format(self):
@@ -846,8 +848,8 @@ def main():
         by cursewords. Sorry about that!""")
         sys.exit(' '.join(exit_text.splitlines()))
 
-    print(term.enter_fullscreen(), end='')
-    print(term.clear(), end='')
+    echo(term.enter_fullscreen())
+    echo(term.clear())
 
     software_info = 'cursewords v{}'.format(version)
     puzzle_info = '{grid.title} - {grid.author}'.format(grid=grid)
@@ -862,7 +864,7 @@ def main():
         pz_w=pz_width, sw_w=sw_width)
 
     with term.location(x=0, y=0):
-        print(term.dim + term.reverse(headline) + term.normal)
+        echo(term.dim + term.reverse(headline) + term.normal)
 
     grid.draw()
 
@@ -883,7 +885,7 @@ def main():
             toolbar += "{:<25}".format(' '.join([shortcut, action]))
 
         with term.location(x=grid_x, y=term.height):
-            print(toolbar, end='')
+            echo(toolbar)
     else:
         grid.notification_area = (grid.notification_area[0] - 1, grid_x)
         command_split = int(len(commands)/2) - 1
@@ -895,7 +897,7 @@ def main():
                 toolbar += '\n' + grid_x * ' '
 
         with term.location(x=grid_x, y=term.height - 2):
-            print(toolbar, end='')
+            echo(toolbar)
 
     clue_width = min(int(1.3 * (puzzle_width) - grid_x),
                      term.width - 2 - grid_x)
@@ -959,7 +961,7 @@ def main():
                 #    prints
                 #           like
                 #                this after each newline
-                print(term.move(info_location['y'], info_location['x']) +
+                echo(term.move(info_location['y'], info_location['x']) +
                       '\r\n'.join(wrapped_clue))
 
             # Otherwise, just draw the old square now that it's not under
@@ -975,7 +977,7 @@ def main():
                                            for pos in grid.cells):
                 puzzle_complete = True
                 with term.location(x=grid_x, y=2):
-                    print(term.reverse("You've completed the puzzle! 🎉"),
+                    echo(term.reverse("You've completed the puzzle! 🎉"),
                           term.clear_eol)
                 timer.show_time()
                 timer.active = False
@@ -1005,7 +1007,7 @@ def main():
                     grid.draw(empty=True)
 
                     with term.location(**info_location):
-                        print('\r\n'.join(['PUZZLE PAUSED' + term.clear_eol,
+                        echo('\r\n'.join(['PUZZLE PAUSED' + term.clear_eol,
                                            term.clear_eol,
                                            term.clear_eol]))
 
@@ -1204,7 +1206,7 @@ def main():
                     while not grid.cells.get(cursor.position).is_blankish():
                         cursor.retreat_perpendicular()
 
-    print(term.exit_fullscreen())
+    echo(term.exit_fullscreen())
 
 
 if __name__ == '__main__':
