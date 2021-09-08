@@ -690,8 +690,13 @@ def main():
 
     parser = argparse.ArgumentParser(
         prog='cursewords',
-        description="""A terminal-based crossword puzzle \
-        solving interface.""")
+        description="""cursewords is a terminal-based crossword puzzle
+        solving interface. Use it to open, solve, and save puzzles in the
+        standard AcrossLite .puz format. Arrow keys and tab navigate,
+        and space bar switches the cursor direction.""",
+        usage=textwrap.dedent("""\
+            cursewords [-h] [--downs-only] [--version] PUZfile
+            print mode: cursewords [--print] [--blank | --solution] [--width INT] PUZfile"""))
 
     parser.add_argument('filename', metavar='PUZfile',
                         help="""path of puzzle file in the \
@@ -699,19 +704,23 @@ def main():
     parser.add_argument('--downs-only', action='store_true',
                         help="""displays only the down clues""")
 
-    print_group = parser.add_argument_group('print mode', 'Options for ' \
-        'writing to standard out instead of entering the interactive ' \
-        'solver')
-    print_group.add_argument('--print', action='store_true',
-                             help="""writes formatted puzzle and clues to \
-                                standard out, instead of opening \
-                                interactive solver""")
+    print_group = parser.add_argument_group('print mode', description="""\
+        If the --print flag is explicitly provided, or if cursewords
+        is not running in an interactive terminal (because its
+        output is being piped or redirected), print a formatted
+        grid and set of clues to stdout instead of starting an interactive
+        session.""")
+    print_group.add_argument('--print', action='store_true', help="""\
+        output formatted grid and clues to stdout""")
 
     print_fill = print_group.add_mutually_exclusive_group()
-    print_fill.add_argument('--blank', action='store_true')
-    print_fill.add_argument('--solution', action='store_true')
+    print_fill.add_argument('--blank', action='store_true', help="""\
+        format the puzzle grid with no answers""")
+    print_fill.add_argument('--solution', action='store_true', help="""\
+        format the puzzle grid with a filled solution""")
 
-    print_group.add_argument('--width', action='store', type=int)
+    print_group.add_argument('--width', action='store', type=int, help="""\
+        maximum width in characters of the output (default 92)""")
 
     parser.add_argument('--version', action='version', version=version)
 
