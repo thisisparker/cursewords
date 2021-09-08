@@ -21,11 +21,10 @@ import time
 import textwrap
 import threading
 
-import puz
-
 from blessed import Terminal
 
 from . import characters
+from . import puz
 
 echo = functools.partial(print, end='', flush=True)
 
