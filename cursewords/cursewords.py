@@ -143,11 +143,11 @@ class Grid:
         self.clues['across'] = num.across
         self.clues['down'] = num.down
 
-        self.spaces['across'] = [(j, i) for i in range(self.column_count)
-                                 for j in range(self.row_count)
+        self.spaces['across'] = [(j, i) for i in range(self.row_count)
+                                 for j in range(self.column_count)
                                  if self.cells[(j, i)].is_letter]
-        self.spaces['down'] = [(j, i) for j in range(self.row_count)
-                               for i in range(self.column_count)
+        self.spaces['down'] = [(j, i) for j in range(self.column_count)
+                               for i in range(self.row_count)
                                if self.cells[(j, i)].is_letter]
 
 
