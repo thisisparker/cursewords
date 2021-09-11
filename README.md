@@ -6,7 +6,7 @@
 
 ## Installation
 
-`cursewords` is only compatible with `python3`, and can be installed on through `pip`. If you don't know what that means, the best command is probably:
+`cursewords` is only compatible with `python3`, and can be installed through `pip`. If you don't know what that means, the best command is probably:
 
 ```bash
 pip3 install cursewords
