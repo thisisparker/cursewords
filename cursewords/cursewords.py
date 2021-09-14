@@ -212,8 +212,9 @@ class Grid:
                 elif blank:
                     rows[1] += '   '
                 elif solution:
-                    rows[1] += ' '.join([self.term.normal, self.cells[pos].solution,
-                                         self.term.dim])
+                    value = cell.solution
+                    value = value.translate(characters.encircle) if cell.circled else value
+                    rows[1] += ' '.join([self.term.normal, value, self.term.dim])
                 else:
                     value, markup = self.compile_cell(pos)
                     value += markup
