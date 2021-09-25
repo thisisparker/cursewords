@@ -975,6 +975,7 @@ def main():
                     timer.start_time = time.time()
                     timer.show_time()
                     modified_since_save = True
+                    puzzle_complete = False
                     if not puzzle_paused:
                         old_word = []
                 else:
