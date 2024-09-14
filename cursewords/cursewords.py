@@ -294,7 +294,8 @@ class Grid:
         self.puzfile.fill = fill
 
         if (any(self.cells.get(pos).marked_wrong or
-                self.cells.get(pos).corrected
+                self.cells.get(pos).corrected or
+                self.cells.get(pos).revealed
                 for pos in self.cells) or
                 self.puzfile.has_markup()):
             md = []
