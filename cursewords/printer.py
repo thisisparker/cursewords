@@ -6,16 +6,17 @@ def printer_output(grid, style=None, width=None, downs_only=False):
     print_width = width or (92 if not sys.stdout.isatty()
                             else min(grid.term.width, 96))
 
-    # Create clue lists but now we'll store number and clue separately
-    clue_lines = ['ACROSS', '']
+    # Find the width in characters of the longest clue number
+    max_num_width = max(len(str(entry['num'])) for entry in
+                            (grid.clues['across'][-1], grid.clues['down'][-1]))
+
+    # Create clue lists and store number and clue separately
     across_clues = [(entry['num'], entry['clue'].strip()) for entry in grid.clues['across']]
     down_clues = [(entry['num'], entry['clue'].strip()) for entry in grid.clues['down']]
     
-    # Find the maximum width needed for number alignment
-    max_num_width = 0
-    for num, _ in across_clues + down_clues:
-        max_num_width = max(max_num_width, len(str(num)))
     
+    clue_lines = ['ACROSS', '']
+
     # Format across clues with aligned numbers
     for num, clue in across_clues:
         clue_lines.append(f"{num:>{max_num_width}}. {clue}")
@@ -23,9 +24,9 @@ def printer_output(grid, style=None, width=None, downs_only=False):
 
     if downs_only:
         clue_lines = []
-        # Still need to keep max_num_width for downs
-    
+
     clue_lines.extend(['DOWN', ''])
+
     # Format down clues with aligned numbers
     for num, clue in down_clues:
         clue_lines.append(f"{num:>{max_num_width}}. {clue}")
@@ -53,8 +54,7 @@ def printer_output(grid, style=None, width=None, downs_only=False):
         while grid_lines:
             current_clue = (current_clue or
                             textwrap.wrap(clue_lines.pop(0), f_width,
-                                        initial_indent="",
-                                        subsequent_indent=" " * (max_num_width + 2)) or
+                                          subsequent_indent=" " * (max_num_width + 2)) or
                             [''])
             current_line = current_clue.pop(0)
             current_grid_line = grid_lines.pop(0)
@@ -71,39 +71,16 @@ def printer_output(grid, style=None, width=None, downs_only=False):
     column_width = print_width // num_cols - 2
     
     for l in clue_lines:
-        if len(l) < column_width:
-            wrapped_clue_lines.append(l)
-        else:
-            # For header rows like "ACROSS" and "DOWN" or empty lines
-            if l in ["ACROSS", "DOWN", ""]:
-                wrapped_clue_lines.append(l)
-                continue
+        if l == '':
+            wrapped_clue_lines.append('')
+            continue
+
+        indent_width = max_num_width + 2
             
-            # For clue lines, which now have aligned numbers in format "NN. clue text"
-            # The period is already at a fixed position based on max_num_width
-            parts = l.split('. ', 1)
-            if len(parts) == 2:
-                num_part = parts[0]
-                clue_text = parts[1]
-                
-                # Calculate the indent width for continuation lines
-                # This includes the right-aligned number plus ". "
-                indent_width = max_num_width + 2
-                
-                # Wrap the text with proper indentation for continuation lines
-                wrapper = textwrap.TextWrapper(
-                    width=column_width,
-                    initial_indent="",
-                    subsequent_indent=" " * indent_width
-                )
-                
-                # Format the clue with the already aligned number and wrap the text
-                formatted_clue = f"{num_part}. {clue_text}"
-                lines = wrapper.wrap(formatted_clue)
-                wrapped_clue_lines.extend(lines)
-            else:
-                # Fallback for any other lines
-                wrapped_clue_lines.extend(textwrap.wrap(l, width=column_width))
+        # Wrap the text
+        lines = textwrap.wrap(l, width=column_width,
+            subsequent_indent=" " * indent_width)
+        wrapped_clue_lines.extend(lines)
 
     num_wrapped_rows = math.ceil(len(wrapped_clue_lines)/num_cols)
 
