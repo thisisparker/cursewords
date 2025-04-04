@@ -6,17 +6,30 @@ def printer_output(grid, style=None, width=None, downs_only=False):
     print_width = width or (92 if not sys.stdout.isatty()
                             else min(grid.term.width, 96))
 
+    # Find the width in characters of the longest clue number
+    max_num_width = max(len(str(entry['num'])) for entry in
+                            (grid.clues['across'][-1], grid.clues['down'][-1]))
+
+    # Create clue lists and store number and clue separately
+    across_clues = [(entry['num'], entry['clue'].strip()) for entry in grid.clues['across']]
+    down_clues = [(entry['num'], entry['clue'].strip()) for entry in grid.clues['down']]
+    
+    
     clue_lines = ['ACROSS', '']
-    clue_lines.extend(['. '.join([str(entry['num']), entry['clue'].strip()])
-                       for entry in grid.clues['across']])
+
+    # Format across clues with aligned numbers
+    for num, clue in across_clues:
+        clue_lines.append(f"{num:>{max_num_width}}. {clue}")
     clue_lines.append('')
 
     if downs_only:
         clue_lines = []
 
     clue_lines.extend(['DOWN', ''])
-    clue_lines.extend(['. '.join([str(entry['num']), entry['clue'].strip()])
-                       for entry in grid.clues['down']])
+
+    # Format down clues with aligned numbers
+    for num, clue in down_clues:
+        clue_lines.append(f"{num:>{max_num_width}}. {clue}")
 
     render_args = {'blank': style == 'blank', 'solution': style == 'solution'}
 
@@ -40,7 +53,8 @@ def printer_output(grid, style=None, width=None, downs_only=False):
     if f_width > 12:
         while grid_lines:
             current_clue = (current_clue or
-                            textwrap.wrap(clue_lines.pop(0), f_width) or
+                            textwrap.wrap(clue_lines.pop(0), f_width,
+                                          subsequent_indent=" " * (max_num_width + 2)) or
                             [''])
             current_line = current_clue.pop(0)
             current_grid_line = grid_lines.pop(0)
@@ -55,11 +69,18 @@ def printer_output(grid, style=None, width=None, downs_only=False):
     wrapped_clue_lines = []
     num_cols = 3 if print_width > 64 else 2
     column_width = print_width // num_cols - 2
+    
     for l in clue_lines:
-        if len(l) < column_width:
-            wrapped_clue_lines.append(l)
-        else:
-            wrapped_clue_lines.extend(textwrap.wrap(l, width=column_width))
+        if l == '':
+            wrapped_clue_lines.append('')
+            continue
+
+        indent_width = max_num_width + 2
+            
+        # Wrap the text
+        lines = textwrap.wrap(l, width=column_width,
+            subsequent_indent=" " * indent_width)
+        wrapped_clue_lines.extend(lines)
 
     num_wrapped_rows = math.ceil(len(wrapped_clue_lines)/num_cols)
 

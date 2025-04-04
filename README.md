@@ -12,7 +12,7 @@
 pip3 install cursewords
 ```
 
-You should then be ready to go. You can then use  `cursewords` to open `.puz` files directly:
+You should then be ready to go. You can then use `cursewords` to open `.puz` files directly:
 
 ```
 cursewords todaysnyt.puz
@@ -36,6 +36,6 @@ To open a puzzle in `downs-only` mode, where only the down clues are visible, us
 
 If `cursewords` is not running in an interactive terminal (because its output is being piped to another command or redirected to a file) or if you pass the `--print` flag directly, it will print a formatted grid and list of clues to stdout and quit. The output of that command can be modified with the following flags:
 
-* `--blank` ensures the grid is unfilled, even if you've saved solving progress
-* `--solution` prints the filled grid
-* `--width INT` caps the program output at INT characters wide. (If this flag isn't passed at runtime, `cursewords` will attempt to pick a reasonable output size. In many cases that will be 92 characters or the width of the puzzle.)
+- `--blank` ensures the grid is unfilled, even if you've saved solving progress
+- `--solution` prints the filled grid
+- `--width INT` caps the program output at INT characters wide. (If this flag isn't passed at runtime, `cursewords` will attempt to pick a reasonable output size. In many cases that will be 92 characters or the width of the puzzle.)
