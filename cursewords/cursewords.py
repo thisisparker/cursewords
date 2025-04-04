@@ -209,10 +209,8 @@ class Grid:
                     rows[1] += '   '
                 elif cell.is_block:
                     rows[1] += characters.squareblock
-                elif blank:
-                    rows[1] += '   '
-                elif solution:
-                    value = cell.solution
+                elif blank or solution:
+                    value = ' ' if blank else cell.solution
                     value = value.translate(characters.encircle) if cell.circled else value
                     rows[1] += ' '.join([self.term.normal, value, self.term.dim])
                 else:
